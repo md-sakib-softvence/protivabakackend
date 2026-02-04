@@ -7,6 +7,7 @@ import {
   Get,
   Req,
   Headers,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,15 +25,16 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   RefreshTokenDto,
-  
+
 } from './dto';
 import { GetUser, Public } from 'src/common/decorators';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Public()
   @Post('register')
@@ -41,6 +43,8 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'Email or phone already exists' })
   async register(@Body() dto: RegisterDto) {
+
+
     return this.authService.register(dto);
   }
 
@@ -143,7 +147,8 @@ export class AuthController {
   }
 
   @Get('me')
-  @ApiBearerAuth('JWT-auth')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard("jwt"))
   @ApiOperation({ summary: 'Get current user' })
   @ApiResponse({ status: 200, description: 'Current user data' })
   async getMe(@GetUser() user: any) {

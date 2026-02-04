@@ -20,6 +20,8 @@ import {
 
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserRole, UserStatus } from '@prisma/client';
+import { IEnv } from 'src/config/env.config';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
@@ -38,7 +40,7 @@ export class AuthService {
     private readonly OTP_EXPIRY_MINUTES = 10;
     private readonly MAX_LOGIN_ATTEMPTS = 5;
     private readonly LOCK_DURATION_MINUTES = 30;
-    prisma: any;
+
     emailService: any;
     smsService: any;
 
@@ -48,9 +50,12 @@ export class AuthService {
         private readonly configService: ConfigService,
         // private readonly emailService: EmailService,
         // private readonly smsService: SmsService,
+        private readonly prisma: PrismaService
     ) { }
 
     async register(dto: RegisterDto) {
+        console.log(dto);
+        console.log("Hit Service");
         const existingUser = await this.prisma.user.findFirst({
             where: {
                 OR: [
@@ -59,6 +64,8 @@ export class AuthService {
                 ],
             },
         });
+
+        console.log("Hit");
 
         if (existingUser) {
             if (existingUser.email === dto.email) {
@@ -95,11 +102,11 @@ export class AuthService {
             },
         });
 
-        await this.emailService.sendVerificationEmail(user.email, otp, user.firstName);
+        // await this.emailService.sendVerificationEmail(user.email, otp, user.firstName);
 
-        if (dto.phone) {
-            await this.smsService.sendOTP(dto.phone, otp);
-        }
+        // if (dto.phone) {
+        //     await this.smsService.sendOTP(dto.phone, otp);
+        // }
 
         return {
             message: 'Registration successful. Please verify your email with the OTP sent.',
@@ -213,6 +220,7 @@ export class AuthService {
         if (!user) {
             throw new UnauthorizedException('Invalid credentials');
         }
+
 
         if (user.lockedUntil && new Date() < user.lockedUntil) {
             throw new UnauthorizedException('Account is locked. Please try again later.');
@@ -338,21 +346,24 @@ export class AuthService {
             this.jwtService.signAsync(
                 { sub: userId, email, role },
                 {
-                    secret: this.configService.get('JWT_SECRET'),
-                    expiresIn: this.configService.get('JWT_EXPIRES_IN', '15m'),
+                    secret: this.configService.get<IEnv>("env")?.JWT_SECRET,
+                    expiresIn: "15m",
                 },
             ),
             this.jwtService.signAsync(
                 { sub: userId, email, role },
                 {
-                    secret: this.configService.get('JWT_REFRESH_SECRET'),
-                    expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+                    secret: this.configService.get<IEnv>("env")?.JWT_REFRESH_SECRET,
+                    expiresIn: "7d",
                 },
             ),
         ]);
 
         return { accessToken, refreshToken };
     }
+
+
+
 
     private async createSession(
         userId: string,
