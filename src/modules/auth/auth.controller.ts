@@ -29,7 +29,7 @@ import {
 } from './dto';
 import { GetUser, Public } from 'src/common/decorators';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -148,7 +148,7 @@ export class AuthController {
 
   @Get('me')
   @ApiBearerAuth()
-  @UseGuards(AuthGuard("jwt"))
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get current user' })
   @ApiResponse({ status: 200, description: 'Current user data' })
   async getMe(@GetUser() user: any) {

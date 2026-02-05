@@ -362,9 +362,6 @@ export class AuthService {
         return { accessToken, refreshToken };
     }
 
-
-
-
     private async createSession(
         userId: string,
         deviceId: string,
