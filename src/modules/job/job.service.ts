@@ -1,0 +1,264 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateJobDto } from './dto/create.job.dto';
+import { ERROR_MESSAGES } from 'src/common/constants';
+import { CloudinaryUploadService } from 'src/cloudinary/cloudinary.upload.service';
+import slugify from 'slugify';
+import { UpdateJobDto } from './dto/update.job.dto';
+
+@Injectable()
+export class JobService {
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly cloudinary: CloudinaryUploadService,
+    ) { }
+
+
+
+    async createJob(data: CreateJobDto, userId: string, images?: Express.Multer.File[]
+    ) {
+        const isExistService = await this.prisma.job.findFirst({
+            where: {
+                userId,
+                categoryId: data.categoryId,
+                subCategoryId: data.subCategoryId,
+                title: data.title,
+            },
+        });
+
+        if (isExistService) {
+            throw new BadRequestException(ERROR_MESSAGES.DUPLICATE_ENTRY);
+        }
+
+        let imageUrls: string[] = [];
+
+        if (images?.length) {
+            const uploadResults = await Promise.all(
+                images.map((file) =>
+                    this.cloudinary.uploadImageFromBuffer(
+                        file.buffer,
+                        'jobs',
+                        `${Date.now()}-${file.originalname}`,
+                    ),
+                ),
+            );
+
+            imageUrls = uploadResults.map((res: any) => res.secure_url);
+        }
+
+        const slug = slugify(data.title, { lower: true, strict: true });
+
+        const result = await this.prisma.job.create({
+            data: {
+                userId,
+                categoryId: data.categoryId,
+                subCategoryId: data.subCategoryId,
+                title: data.title,
+                slug,
+                basePrice: data.basePrice,
+                priceType: data.priceType,
+                description: data.description,
+                images: imageUrls,
+                status: data.status ?? 'DRAFT',
+                includeService: data.includeService,
+            },
+        });
+
+        return result;
+    }
+
+    async getSingleJob(jobId: string) {
+        const result = await this.prisma.job.findUnique({
+            where: {
+                id: jobId
+            }
+        });
+
+        if (!result) throw new NotFoundException(ERROR_MESSAGES.RECORD_NOT_FOUND);
+
+        return result
+
+    }
+
+
+    async updateJob(
+        jobId: string,
+        data: UpdateJobDto,
+        images: Express.Multer.File[] | undefined,
+        userId: string,
+    ) {
+        const job = await this.prisma.job.findUnique({
+            where: { id: jobId },
+            select: {
+                id: true,
+                userId: true,
+                title: true,
+                includeService: true,
+                images: true,
+            }
+        });
+
+        if (!job || job.userId !== userId) {
+            throw new NotFoundException(ERROR_MESSAGES.RECORD_NOT_FOUND);
+        }
+
+        function isValidValue(value: any): boolean {
+            return value !== undefined && value !== null && value !== '';
+        }
+
+        const updateData: any = {};
+
+        if (isValidValue(data.title)) {
+            updateData.title = data.title;
+            if (data.title !== job.title) {
+                updateData.slug = slugify(data.title as string, {
+                    lower: true,
+                    strict: true
+                });
+            }
+        }
+
+        const scalarFields = [
+            'description',
+            'basePrice',
+            'priceType',
+            'status',
+            'categoryId',
+            'subCategoryId',
+        ];
+
+        for (const field of scalarFields) {
+            if (isValidValue(data[field])) {
+                updateData[field] = data[field];
+            }
+        }
+
+        let finalIncludeService = [...(job.includeService || [])];
+
+        if (
+            Array.isArray(data.includeServiceRemove) &&
+            data.includeServiceRemove.length > 0
+        ) {
+            finalIncludeService = finalIncludeService.filter(
+                (item) => !data.includeServiceRemove!.includes(item),
+            );
+        }
+
+        if (Array.isArray(data.includeService) && data.includeService.length > 0) {
+            finalIncludeService = data.includeService;
+        }
+
+        if (
+            (data.includeServiceRemove?.length ?? 0) > 0 ||
+            (data.includeService?.length ?? 0) > 0
+        ) {
+            updateData.includeService = finalIncludeService;
+        }
+
+
+
+        let finalImages = [...(job.images || [])];
+
+        if (Array.isArray(data.removedImages) && data.removedImages.length > 0) {
+            finalImages = finalImages.filter(
+                (img) => !data.removedImages!.includes(img),
+            );
+
+        }
+
+        if (images && images.length > 0) {
+            const uploaded = await Promise.all(
+                images.map((file) =>
+                    this.cloudinary.uploadImageFromBuffer(
+                        file.buffer,
+                        'jobs',
+                        `${Date.now()}-${file.originalname}`,
+                    ),
+                ),
+            );
+            finalImages.push(...uploaded.map((r: any) => r.secure_url));
+        }
+
+        if (
+            (Array.isArray(data.removedImages) && data.removedImages.length > 0) ||
+            (Array.isArray(images) && images.length > 0)
+        ) {
+            updateData.images = finalImages;
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return job;
+        }
+
+        return this.prisma.job.update({
+            where: { id: jobId },
+            data: updateData,
+        });
+    }
+
+    async getMyAllJob(userId: string, page: number, limit: number) {
+
+        const skip = (page - 1) * limit
+
+        const total = await this.prisma.job.count({
+            where: {
+                userId: userId
+            }
+        })
+
+        const result = await this.prisma.job.findMany({
+            where: {
+                userId: userId
+            },
+            take: limit,
+            skip: skip,
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        return {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            result,
+        };
+
+    }
+
+    async getAllActiveJob(userId: string, page: number, limit: number) {
+
+        const skip = (page - 1) * limit;
+
+        const total = await this.prisma.job.count({
+            where: {
+                userId: userId,
+                status: "ACTIVE"
+            }
+        });
+
+
+        const result = await this.prisma.job.findMany({
+            where: {
+                userId: userId,
+                status: "ACTIVE"
+            },
+            take: limit,
+            skip: skip,
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        return {
+            page,
+            limit,
+            skip,
+            totalPage: Math.ceil(total / limit),
+            data: result
+        }
+
+    }
+
+}

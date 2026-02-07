@@ -7,9 +7,9 @@ export class CloudinaryUploadService {
         @Inject('CLOUDINARY') private readonly cloudinary: typeof Cloudinary,
     ) { }
 
-    async uploadImage(filePath: string, folderName: string) {
-        return this.cloudinary.uploader.upload(filePath, { folder: folderName });
-    }
+    // async uploadImage(filePath: string, folderName: string) {
+    //     return this.cloudinary.uploader.upload(filePath, { folder: folderName });
+    // }
 
     async uploadImageFromBuffer(buffer: Buffer, folderName: string, fileName: string){
         return new Promise((resolve, reject) => {

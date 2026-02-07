@@ -216,10 +216,11 @@ model Job {
   categoryId      String
   subCategoryId   String?
   title           String
-  slug            String       @unique
+  slug            String?
   description     String
   basePrice       Decimal      @db.Decimal(10, 2)
   priceType       PriceType
+  includeService  String[]
   features        Json?
   images          String[]     @default([])
   videos          String[]     @default([])
