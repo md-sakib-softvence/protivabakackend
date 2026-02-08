@@ -19,4 +19,17 @@ export class MessageService {
         return result
     }
 
+
+    async getMessageBetweenUser(userId: string, withUserId: string) {
+        const result = await this.prisma.message.findMany({
+            where: {
+                OR: [
+                    { senderId: userId, receiverId: withUserId },
+                    { senderId: withUserId, receiverId: userId }
+                ]
+            }
+        });
+        return result;
+    }
+
 }

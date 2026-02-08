@@ -14,6 +14,7 @@ import rateLimit from 'express-rate-limit';
 import { Redis } from 'ioredis';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 
+
 let apm: any;
 try {
   apm = require('elastic-apm-node');
@@ -280,7 +281,7 @@ export async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  app.useWebSocketAdapter(new IoAdapter(apm));
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());

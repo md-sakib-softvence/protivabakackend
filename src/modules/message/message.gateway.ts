@@ -70,4 +70,20 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
     return message
   }
 
+  // async sendMessageToUser(sanderId: string, receiverId: string, content: string, messageType: "TEXT" | "AUDIO") {
+
+  //   const message = await this.messageService.createMessage(sanderId, receiverId, content, messageType);
+
+
+  //   const receiverSocketId = this.onlineUser.get(receiverId);
+
+  //   const ricverId = this.onlineUser.get(receiverId);
+
+  //   if (receiverSocketId) {
+  //     this.server.to(receiverSocketId).emit('receive-message', message);
+  //   }
+
+  //   return message;
+  // }
+
 }

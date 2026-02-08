@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { MessageService } from './message.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SendMessageDto } from './dto/sent.message.dto';
@@ -23,5 +23,8 @@ export class MessageController {
       data: message
     };
   }
+
+
+
 
 }
