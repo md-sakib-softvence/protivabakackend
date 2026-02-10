@@ -65,7 +65,7 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
     const recevierSocketId = this.onlineUser.get(receiverId);
 
     if (recevierSocketId) {
-      this.server.to(recevierSocketId).emit("recive-message", message);
+      this.server.to(recevierSocketId).emit("receve-message", message);
     }
     return message
   }
@@ -85,5 +85,8 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   //   return message;
   // }
+
+
+  
 
 }

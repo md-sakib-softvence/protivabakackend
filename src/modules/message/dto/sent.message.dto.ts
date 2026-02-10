@@ -4,10 +4,6 @@ import { IsEnum, IsString } from "class-validator";
 export class SendMessageDto {
     @ApiProperty()
     @IsString()
-    senderId: string;
-
-    @ApiProperty()
-    @IsString()
     receiverId: string;
 
     @ApiProperty({
