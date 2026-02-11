@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ERROR_MESSAGES } from 'src/common/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -85,7 +86,7 @@ export class WithdrawService {
 
     }
 
-    async getMyWithdraw(userId: string, page: number, limit: number, search: number, status?: "PENDING" | "APPROVED" | "PROCESSING" | "COMPLETED" | "REJECTED" | "CANCELLED") {
+    async getMyWithdraw(userId: string, page: number, limit: number, status?: "PENDING" | "APPROVED" | "PROCESSING" | "COMPLETED" | "REJECTED" | "CANCELLED") {
         const skip = (page - 1) * limit;
 
         const filter: any = {}
@@ -107,9 +108,63 @@ export class WithdrawService {
         });
 
         return {
-            paginate : {}
+            paginate: {
+                page,
+                limit,
+                total,
+                totalPage: Math.ceil(total / limit)
+            },
+            data
         }
 
     }
+
+    async approveWithdrawRequest(withdrawId: string) {
+
+        const ckeck = await this.prisma.withdrawal.findUnique({
+            where: {
+                id: withdrawId
+            }
+        })
+
+        if (!ckeck) throw new NotFoundException(ERROR_MESSAGES.RECORD_NOT_FOUND)
+
+        const result = await this.prisma.withdrawal.update({
+            where: {
+                id: withdrawId
+            },
+            data: {
+                status: "APPROVED"
+            }
+        });
+
+
+        return result
+
+    }
+
+    async rejectWithdrawRequest(withdrawId: string) {
+
+        const ckeck = await this.prisma.withdrawal.findUnique({
+            where: {
+                id: withdrawId
+            }
+        })
+
+        if (!ckeck) throw new NotFoundException(ERROR_MESSAGES.RECORD_NOT_FOUND)
+
+        const result = await this.prisma.withdrawal.update({
+            where: {
+                id: withdrawId
+            },
+            data: {
+                status: "APPROVED"
+            }
+        });
+
+
+
+        return result
+    } 
 
 }
