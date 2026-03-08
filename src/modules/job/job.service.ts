@@ -81,12 +81,7 @@ export class JobService {
     }
 
 
-    async updateJob(
-        jobId: string,
-        data: UpdateJobDto,
-        images: Express.Multer.File[] | undefined,
-        userId: string,
-    ) {
+    async updateJob(jobId: string, data: UpdateJobDto, images: Express.Multer.File[] | undefined, userId: string) {
         const job = await this.prisma.job.findUnique({
             where: { id: jobId },
             select: {

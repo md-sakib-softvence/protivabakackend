@@ -210,7 +210,4 @@ export class JobController {
     return this.jobService.getAllActiveJob(userId, Number(page), Number(limit));
   }
 
-
-
-
 }

@@ -1,9 +1,12 @@
-import { Controller, Get, Param, ParseIntPipe, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { ProviderGuard } from 'src/common/guards/provider.guard';
 import { GetUser } from 'src/common/decorators';
+import { BookingStatus } from '@prisma/client';
+import { ClientGuard } from 'src/common/guards/client.guard';
+import { CreteBookingDto } from './dto/create.booking.dto';
 
 @Controller('bookings')
 export class BookingController {
@@ -60,7 +63,41 @@ export class BookingController {
 
   }
 
+  @Get("my-all-booking")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, ClientGuard)
+  @ApiOperation({ summary: "My all booking (Only Can User)" })
+  @ApiQuery({ name: "page", required: false, example: 1 })
+  @ApiQuery({ name: "limit", required: false, example: 10 })
+  @ApiQuery({ name: "status", required: false, enum: BookingStatus })
+  async myAllBooking(
+    @GetUser("id") userId: string,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+    @Query("status") status?: BookingStatus
+  ) {
 
-  
+    return this.bookingService.myBooking(
+      userId,
+      Number(page),
+      Number(limit),
+      status
+    );
+  }
+
+
+  @Post("make-booking")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, ClientGuard)
+  @ApiOperation({ summary: "Book a service (Only Can CLIENT)" })
+  async makeBooking(@GetUser("id") userId: string, @Body() dto: CreteBookingDto) {
+    const result = await this.bookingService.makeBooking(userId, dto);
+    return {
+      success: true,
+      message: "Thank You! We’ve sent your booking details to Provider",
+      data: result
+    }
+
+  }
 
 }

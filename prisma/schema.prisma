@@ -251,7 +251,7 @@ model Job {
 
 model Booking {
   id                 String          @id @default(cuid())
-  bookingNumber      String          @unique
+  bookingNumber      String?
   clientId           String
   providerId         String
   jobId              String
@@ -268,9 +268,9 @@ model Booking {
   contactPhone       String
   contactEmail       String?
   serviceAmount      Decimal         @db.Decimal(10, 2)
-  platformFee        Decimal         @db.Decimal(10, 2)
-  taxAmount          Decimal         @default(0) @db.Decimal(10, 2)
-  totalAmount        Decimal         @db.Decimal(10, 2)
+  platformFee        Decimal?        @db.Decimal(10, 2)
+  taxAmount          Decimal?        @default(0) @db.Decimal(10, 2)
+  totalAmount        Decimal?        @db.Decimal(10, 2)
   paymentMethod      String?
   paymentStatus      String          @default("PENDING")
   paidAt             DateTime?

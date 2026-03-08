@@ -1,6 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BookingStatus } from '@prisma/client';
 import { ERROR_MESSAGES } from 'src/common/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CreteBookingDto } from './dto/create.booking.dto';
 
 @Injectable()
 export class BookingService {
@@ -62,5 +64,77 @@ export class BookingService {
 
     }
 
+
+    async myBooking(userId: string, page: number, limit: number, status?: BookingStatus) {
+
+        const skip = (page - 1) * limit;
+
+        const totalBooking = await this.prisma.booking.count({
+            where: {
+                clientId: userId,
+                ...(status && { status })
+            }
+        });
+
+        const totalBookingAccepted = await this.prisma.booking.count({
+            where: {
+                clientId: userId,
+                status: "ACCEPTED"
+            }
+        });
+
+        const totalInProgress = await this.prisma.booking.count({
+            where: {
+                clientId: userId,
+                status: "IN_PROGRESS"
+            }
+        });
+
+        const totalComplete = await this.prisma.booking.count({
+            where: {
+                clientId: userId,
+                status: "COMPLETED"
+            }
+        });
+
+        const booking = await this.prisma.booking.findMany({
+            where: {
+                clientId: userId,
+                ...(status && { status })
+            },
+            skip,
+            take: limit,
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        return {
+            meta: {
+                total: totalBooking,
+                page,
+                limit,
+                totalPages: Math.ceil(totalBooking / limit),
+            },
+            stats: {
+                totalBooking,
+                totalAccepted: totalBookingAccepted,
+                totalInProgress,
+                totalComplete
+            },
+            data: booking
+        };
+    }
+
+    async makeBooking(userId: string, data: CreteBookingDto) {
+        const createBooking = await this.prisma.booking.create({
+            data: {
+                clientId: userId,
+                ...data
+            }
+        });
+
+        return createBooking;
+    }
 
 }
