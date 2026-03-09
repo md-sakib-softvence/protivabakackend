@@ -1,4 +1,4 @@
-import { Controller, DefaultValuePipe, Get, ParseIntPipe, Patch, Query, UseGuards } from '@nestjs/common';
+import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Patch, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
@@ -110,5 +110,11 @@ export class UserController {
     }
   }
 
+
+  @Get(':providerId')
+  @ApiOperation({ summary: "Single provider with (Service & Review)" })
+  async getSingleProviderWithReviewAndService(@Param('providerId') providerId: string) {
+    return this.userService.getSingleProviderWithReviewAndService(providerId);
+  }
 
 }

@@ -165,6 +165,67 @@ export class WithdrawService {
 
 
         return result
-    } 
+    }
+
+    async providerWallet(providerId: string) {
+        const totalWithdraeAbleAmount = await this.prisma.booking.aggregate({
+            where: {
+                status: "COMPLETED",
+                providerId: providerId
+            },
+            _sum: {
+                serviceAmount: true
+            }
+        });
+
+        const totalPendingAmount = await this.prisma.booking.aggregate({
+            where: {
+                providerId: providerId,
+                status: {
+                    in: ['IN_PROGRESS', "ACCEPTED", "PENDING"]
+                }
+            },
+            _sum: {
+                serviceAmount: true
+            }
+        })
+
+        const totalWithdrawAmount = await this.prisma.withdrawal.aggregate({
+            where: {
+                userId: providerId,
+                status: "APPROVED"
+            },
+            _sum: {
+                amount: true
+            }
+        });
+
+        const totalBooking = await this.prisma.booking.count({
+            where: {
+                providerId: providerId
+            }
+        })
+
+        const totalBookingServed = await this.prisma.booking.count({
+            where: {
+                providerId: providerId,
+                status: {
+                    notIn: ["PENDING"]
+                }
+            }
+        })
+
+        return {
+            withdraw: {
+                totalWithdraeAbleAmount: totalWithdraeAbleAmount._sum.serviceAmount || 0,
+                totalWithdrawAmount: totalWithdrawAmount._sum.amount || 0,
+                totalPendingAmount: totalPendingAmount._sum.serviceAmount || 0
+            },
+            booking: {
+                totalBooking,
+                totalBookingServed
+            }
+        }
+    }
 
 }

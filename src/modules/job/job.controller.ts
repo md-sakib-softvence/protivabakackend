@@ -184,7 +184,7 @@ export class JobController {
   @Get('my-job')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'My All Job (Only Can Do Provider)'})
+  @ApiOperation({ summary: 'My All Job (Only Can Do Provider)' })
   @ApiQuery({ name: 'page', required: false, example: 1, description: 'Page number' })
   @ApiQuery({ name: 'limit', required: false, example: 10, description: 'Number of jobs per page' })
   async getMyAllJob(
@@ -208,6 +208,11 @@ export class JobController {
     @Query('limit') limit: number = 10,
   ) {
     return this.jobService.getAllActiveJob(userId, Number(page), Number(limit));
+  }
+
+  @Get(':jobId/single-job-with-review')
+  async singleJobWithReview(@Param('jobId') jobId: string) {
+    return this.jobService.singleJobWithReview(jobId);
   }
 
 }

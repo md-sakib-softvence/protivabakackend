@@ -75,7 +75,7 @@ export class CreteBookingDto {
         example: 500
     })
     @IsNumber()
-    serviceAmount: string;
+    serviceAmount: number;
 
 
     @ApiProperty({

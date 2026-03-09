@@ -150,5 +150,39 @@ export class SubCategoryService {
 
     }
 
+    async subCategoryUnderAllCategory(subCategoryId: string, page: number, limit: number) {
+
+        const skip = (page - 1) * limit;
+
+        const totalService = await this.prisma.job.count({
+            where: {
+                subCategoryId: subCategoryId
+            }
+        })
+
+        const service = await this.prisma.job.findMany({
+            where: {
+                subCategoryId: subCategoryId
+            },
+            take: limit,
+            skip: skip
+        });
+
+
+        const totalPage = Math.ceil(totalService / limit);
+
+
+        return {
+            meta: {
+                page,
+                skip,
+                limit,
+                totalService,
+                totalPage
+            },
+            data: service
+        }
+
+    }
 
 }
