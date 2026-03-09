@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Patch, Post, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { SubCategoryService } from './sub-category.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateSubCategoryDto } from './dto/create.sub.category.dto';
@@ -25,7 +25,7 @@ export class SubCategoryController {
     ]),
   )
   @ApiConsumes('multipart/form-data')
-    @ApiOperation({
+  @ApiOperation({
     summary: "Sub-category create (Only Can Do Super Admin)"
   })
   @ApiBody({
@@ -84,7 +84,7 @@ export class SubCategoryController {
     ),
   )
   @ApiConsumes('multipart/form-data')
-    @ApiOperation({
+  @ApiOperation({
     summary: "Sub-category Update (Only Can Do Super Admin)"
   })
   @ApiBody({
@@ -161,5 +161,18 @@ export class SubCategoryController {
 
   }
 
+  @Get('/sub-category/:subCategoryId')
+  @ApiOperation({ summary: "All job under sub category" })
+  async subCategoryUnderAllCategory(
+    @Param('subCategoryId') subCategoryId: string,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+  ) {
+    return this.subCategoryService.subCategoryUnderAllCategory(
+      subCategoryId,
+      page,
+      limit,
+    );
+  }
 
 }

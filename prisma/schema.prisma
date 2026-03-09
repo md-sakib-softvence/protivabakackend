@@ -241,6 +241,7 @@ model Job {
   category        Category     @relation(fields: [categoryId], references: [id])
   subCategory     SubCategory? @relation(fields: [subCategoryId], references: [id])
   user            User         @relation(fields: [userId], references: [id])
+  reviews         Review[]
 
   @@index([userId, status])
   @@index([categoryId, status])
@@ -378,6 +379,7 @@ model Review {
   bookingId    String   @unique
   senderId     String
   receiverId   String
+  jobId        String
   rating       Int      @db.SmallInt
   comment      String?
   images       String[] @default([])
@@ -390,6 +392,7 @@ model Review {
   booking      Booking  @relation(fields: [bookingId], references: [id])
   receiver     User     @relation("ReviewReceiver", fields: [receiverId], references: [id])
   sender       User     @relation("ReviewSender", fields: [senderId], references: [id])
+  job          Job      @relation(fields: [jobId], references: [id])
 
   @@index([receiverId, isVisible])
   @@index([createdAt])

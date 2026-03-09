@@ -256,4 +256,18 @@ export class JobService {
 
     }
 
+    async singleJobWithReview(jobId: string) {
+        const job = await this.prisma.job.findUnique({
+            where: {
+                id: jobId
+            },
+            include: {
+                reviews: true
+            }
+        });
+
+        if (!job) throw new NotFoundException("Job Not Found");
+
+        return job;
+    }
 }

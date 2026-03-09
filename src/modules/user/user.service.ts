@@ -150,5 +150,40 @@ export class UserService {
 
     }
 
+    async getSingleProviderWithReviewAndService(providerId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: providerId,
+                role: "PROVIDER"
+            },
+            include: {
+                jobs: true,
+                receivedReviews: true,
+                _count: {
+                    select: {
+                        jobs: true,
+                        receivedReviews: true
+                    }
+                }
+            }
+        });
+
+        const agvReview = await this.prisma.review.aggregate({
+            where: {
+                receiverId: providerId
+            },
+            _avg: {
+                rating: true
+            }
+        })
+
+        if (!user) throw new NotFoundException("User not found");
+
+        return {
+            avgReview: agvReview._avg.rating || 0,
+            ...user
+        };
+
+    }
 
 }
