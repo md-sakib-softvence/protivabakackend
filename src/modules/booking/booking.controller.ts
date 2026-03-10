@@ -4,7 +4,7 @@ import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@n
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { ProviderGuard } from 'src/common/guards/provider.guard';
 import { GetUser } from 'src/common/decorators';
-import { BookingStatus } from '@prisma/client';
+import { BookingCompliteInProgress, BookingStatus } from '@prisma/client';
 import { ClientGuard } from 'src/common/guards/client.guard';
 import { CreteBookingDto } from './dto/create.booking.dto';
 
@@ -98,6 +98,65 @@ export class BookingController {
       data: result
     }
 
+  }
+
+
+
+  @Patch(':bookingId/complete-inprogress/:status')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Booking Status Update (Complete or InProgress)' })
+  @ApiParam({ name: 'bookingId', type: 'string', description: 'Booking ID' })
+  @ApiParam({
+    name: 'status',
+    enum: BookingCompliteInProgress,
+    description: 'Booking status to update'
+  })
+  @ApiResponse({ status: 200, description: 'Booking status updated successfully.' })
+  async bookingCompliteInProgress(
+    @Param('bookingId') bookingId: string,
+    @Param('status') status: BookingCompliteInProgress,
+    @GetUser("id") userId: string
+  ) {
+
+    const result = await this.bookingService.bookingCompliteInProgress(
+      userId,
+      bookingId,
+      status
+    );
+
+    return {
+      success: true,
+      message: `Booking ${status} Successfully`,
+      data: result
+    };
+  }
+
+
+  @Get('recent-bookings')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get Recent All Booking (Provider)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiResponse({ status: 200, description: 'Recent bookings fetched successfully' })
+  async recentAllBooking(
+    @GetUser("id") userId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+
+    const result = await this.bookingService.recentAllBooking(
+      userId,
+      Number(page),
+      Number(limit)
+    );
+
+    return {
+      success: true,
+      message: "Recent bookings fetched successfully",
+      ...result
+    };
   }
 
 }

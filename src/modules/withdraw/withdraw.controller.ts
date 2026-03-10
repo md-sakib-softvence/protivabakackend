@@ -1,9 +1,10 @@
-import { Controller, Get, ParseIntPipe, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, ParseIntPipe, Patch, Query, UseGuards } from '@nestjs/common';
 import { WithdrawService } from './withdraw.service';
 import { ApiBasicAuth, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { WithdrawalStatus } from '@prisma/client';
 import { GetUser } from 'src/common/decorators';
+import { ProviderGuard } from 'src/common/guards/provider.guard';
 
 @Controller('withdraw')
 export class WithdrawController {
@@ -102,7 +103,19 @@ export class WithdrawController {
 
   }
 
+  @Get("provider-wallet")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard , ProviderGuard)
+  @ApiOperation({ summary: "Povider Wallet" })
+  async getProviderWallet(@GetUser("id") userId: string) {
+    const result = await this.withdrawService.providerWallet(userId);
 
+    return {
+      success: true,
+      data: result
+    }
+
+  }
 
 
 }

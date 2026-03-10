@@ -56,6 +56,7 @@ model User {
   sessions           Session[]
   settings           UserSetting?
   withdrawals        Withdrawal[]
+  wallet             Wallet?
 
   @@index([email])
   @@index([phone])
@@ -374,6 +375,14 @@ model Withdrawal {
   @@map("withdrawals")
 }
 
+model Wallet {
+  id     String @id @default(uuid())
+  userId String @unique
+  amount Int
+
+  user User @relation(fields: [userId], references: [id])
+}
+
 model Review {
   id           String   @id @default(cuid())
   bookingId    String   @unique
@@ -541,6 +550,11 @@ enum BookingStatus {
   COMPLETED
   CANCELLED
   REFUNDED
+}
+
+enum BookingCompliteInProgress {
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum ServiceLocation {

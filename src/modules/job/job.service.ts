@@ -15,8 +15,7 @@ export class JobService {
 
 
 
-    async createJob(data: CreateJobDto, userId: string, images?: Express.Multer.File[]
-    ) {
+    async createJob(data: CreateJobDto, userId: string, images?: Express.Multer.File[]){
         const isExistService = await this.prisma.job.findFirst({
             where: {
                 userId,
