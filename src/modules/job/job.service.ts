@@ -15,7 +15,7 @@ export class JobService {
 
 
 
-    async createJob(data: CreateJobDto, userId: string, images?: Express.Multer.File[]){
+    async createJob(data: CreateJobDto, userId: string, images?: Express.Multer.File[]) {
         const isExistService = await this.prisma.job.findFirst({
             where: {
                 userId,
@@ -33,13 +33,7 @@ export class JobService {
 
         if (images?.length) {
             const uploadResults = await Promise.all(
-                images.map((file) =>
-                    this.cloudinary.uploadImageFromBuffer(
-                        file.buffer,
-                        'jobs',
-                        `${Date.now()}-${file.originalname}`,
-                    ),
-                ),
+                images.map((file) => this.cloudinary.uploadImageFromBuffer(file.buffer, 'jobs', `${Date.now()}-${file.originalname}`))
             );
 
             imageUrls = uploadResults.map((res: any) => res.secure_url);
@@ -77,8 +71,7 @@ export class JobService {
 
         return result
 
-    }
-
+    };
 
     async updateJob(jobId: string, data: UpdateJobDto, images: Express.Multer.File[] | undefined, userId: string) {
         const job = await this.prisma.job.findUnique({
@@ -112,14 +105,7 @@ export class JobService {
             }
         }
 
-        const scalarFields = [
-            'description',
-            'basePrice',
-            'priceType',
-            'status',
-            'categoryId',
-            'subCategoryId',
-        ];
+        const scalarFields = ['description', 'basePrice', 'priceType', 'status', 'categoryId', 'subCategoryId'];
 
         for (const field of scalarFields) {
             if (isValidValue(data[field])) {

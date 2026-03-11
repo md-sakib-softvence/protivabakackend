@@ -105,9 +105,22 @@ export class WithdrawController {
 
   @Get("provider-wallet")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard , ProviderGuard)
+  @UseGuards(JwtAuthGuard, ProviderGuard)
   @ApiOperation({ summary: "Povider Wallet" })
   async getProviderWallet(@GetUser("id") userId: string) {
+    const result = await this.withdrawService.providerWallet(userId);
+
+    return {
+      success: true,
+      data: result
+    }
+
+  }
+  @Get("cart-withdraw-request")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, ProviderGuard)
+  @ApiOperation({ summary: "Cart Withdraw Request" })
+  async cartWithdrawRequest(@GetUser("id") userId: string) {
     const result = await this.withdrawService.providerWallet(userId);
 
     return {

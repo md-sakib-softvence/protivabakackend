@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ERROR_MESSAGES } from 'src/common/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { MakeWithdrawRequestCardPaymentDto, MakeWithdrawRequestMobileBankingDto } from './dto/make.withdraw.request';
 
 @Injectable()
 export class WithdrawService {
@@ -244,6 +245,54 @@ export class WithdrawService {
                 totalBookingServed
             }
         }
+    }
+
+    async makeCardWithdrawRequest(userId: string, data: MakeWithdrawRequestCardPaymentDto) {
+        const wallet = await this.prisma.wallet.findUnique({
+            where: {
+                userId: userId
+            }
+        });
+
+        if (!wallet) throw new NotFoundException("Wallet not found");
+        if (wallet.userId !== userId) throw new BadRequestException("You are not permitted to access this route");
+        if (wallet.amount < data.amount) throw new BadRequestException(`Insufficient balance. Your wallet has ${wallet.amount}, but you tried to withdraw ${data.amount}.`);
+
+        const requestWithdraw = await this.prisma.withdrawal.create({
+            data: {
+                userId: userId,
+                bankType: "CARD_PAYMENT",
+                ...data
+            }
+        });
+
+        return requestWithdraw;
+
+    };
+
+
+    async makeIBankingWithdrawRequest(userId: string, data: MakeWithdrawRequestMobileBankingDto) {
+        const wallet = await this.prisma.wallet.findUnique({
+            where: {
+                userId: userId
+            }
+        });
+
+        if (!wallet) throw new NotFoundException("Wallet not found");
+        if (wallet.userId !== userId) throw new BadRequestException("You are not permitted to access this route");
+        if (wallet.amount < data.amount) throw new BadRequestException(`Insufficient balance. Your wallet has ${wallet.amount}, but you tried to withdraw ${data.amount}.`);
+
+
+        const requestWithdraw = await this.prisma.withdrawal.create({
+            data: {
+                userId: userId,
+                bankType: "MOBILE_BANKING",
+                ...data
+            }
+        });
+
+        return requestWithdraw;
+
     }
 
 }
