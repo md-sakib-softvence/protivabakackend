@@ -4,7 +4,7 @@ import { CreateJobDto } from './dto/create.job.dto';
 import { ERROR_MESSAGES } from 'src/common/constants';
 import { CloudinaryUploadService } from 'src/cloudinary/cloudinary.upload.service';
 import slugify from 'slugify';
-import { UpdateJobDto } from './dto/update.job.dto';
+import { UpdateJobDto, UpdateJobDtoPro } from './dto/update.job.dto';
 
 @Injectable()
 export class JobService {
@@ -255,4 +255,42 @@ export class JobService {
 
         return job;
     }
+
+
+    async updateJObContent(userId: string, jobId: string, data: UpdateJobDtoPro) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+
+        const job = await this.prisma.job.findUnique({
+            where: {
+                id: jobId
+            }
+        });
+
+        if (!job) throw new NotFoundException("Job not found");
+
+        if (userId !== job?.userId) {
+            throw new BadRequestException("You are not permited access this route.");
+        };
+
+        const update = await this.prisma.job.update({
+            where: {
+                id: jobId
+            },
+            data: {
+                title: data.title,
+                description: data.description,
+                basePrice: data.basePrice,
+                priceType: data.priceType,
+                includeService: data.includeService
+            }
+        });
+        return update;
+    }
+
 }

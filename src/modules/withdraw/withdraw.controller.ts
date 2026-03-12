@@ -1,10 +1,11 @@
-import { Body, Controller, Get, ParseIntPipe, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { WithdrawService } from './withdraw.service';
-import { ApiBasicAuth, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiBasicAuth, ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { WithdrawalStatus } from '@prisma/client';
 import { GetUser } from 'src/common/decorators';
 import { ProviderGuard } from 'src/common/guards/provider.guard';
+import { MakeWithdrawRequestCardPaymentDto, MakeWithdrawRequestMobileBankingDto } from './dto/make.withdraw.request';
 
 @Controller('withdraw')
 export class WithdrawController {
@@ -119,7 +120,7 @@ export class WithdrawController {
   @Get("cart-withdraw-request")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, ProviderGuard)
-  @ApiOperation({ summary: "Cart Withdraw Request" })
+  @ApiOperation({ summary: "My All Withdraw Request" })
   async cartWithdrawRequest(@GetUser("id") userId: string) {
     const result = await this.withdrawService.providerWallet(userId);
 
@@ -130,5 +131,47 @@ export class WithdrawController {
 
   }
 
+  @Post('card')
+  @ApiOperation({ summary: 'Request withdraw using bank card (On' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, ProviderGuard)
+  @ApiResponse({
+    status: 201,
+    description: 'Withdraw request created successfully'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request or insufficient balance'
+  })
+  async makeCardWithdrawRequest(
+    @GetUser('id') userId: string,
+    @Body() data: MakeWithdrawRequestCardPaymentDto
+  ) {
+    return this.withdrawService.makeCardWithdrawRequest(userId, data);
+  }
+
+  @Post('mobile-banking')
+  @ApiOperation({ summary: 'Request withdraw using mobile banking' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, ProviderGuard)
+  @ApiResponse({
+    status: 201,
+    description: 'Withdraw request created successfully'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request or insufficient balance'
+  })
+  async makeMobileBankingWithdrawRequest(
+    @GetUser('id') userId: string,
+    @Body() data: MakeWithdrawRequestMobileBankingDto
+  ) {
+    return this.withdrawService.makeIBankingWithdrawRequest(userId, data);
+  }
+
+
+
+
 
 }
+
