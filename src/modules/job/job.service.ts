@@ -15,7 +15,7 @@ export class JobService {
 
 
 
-    async createJob(data: CreateJobDto, userId: string, images?: Express.Multer.File[]) {
+    async createJob(data: CreateJobDto, userId: string, images: Express.Multer.File) {
         const isExistService = await this.prisma.job.findFirst({
             where: {
                 userId,
@@ -29,15 +29,17 @@ export class JobService {
             throw new BadRequestException(ERROR_MESSAGES.DUPLICATE_ENTRY);
         }
 
-        let imageUrls: string[] = [];
+        // let imageUrls: string[] = [];
 
-        if (images?.length) {
-            const uploadResults = await Promise.all(
-                images.map((file) => this.cloudinary.uploadImageFromBuffer(file.buffer, 'jobs', `${Date.now()}-${file.originalname}`))
-            );
+        // if (images?.length) {
+        //     const uploadResults = await Promise.all(
+        //         images.map((file) => this.cloudinary.uploadImageFromBuffer(file.buffer, 'jobs', `${Date.now()}-${file.originalname}`))
+        //     );
 
-            imageUrls = uploadResults.map((res: any) => res.secure_url);
-        }
+        //     imageUrls = uploadResults.map((res: any) => res.secure_url);
+        // }
+
+        const upload = await this.cloudinary.uploadImageFromBuffer(images.buffer, "jobs", `${Date.now()}-${images.originalname}`)
 
         const slug = slugify(data.title, { lower: true, strict: true });
 
@@ -51,7 +53,7 @@ export class JobService {
                 basePrice: data.basePrice,
                 priceType: data.priceType,
                 description: data.description,
-                images: imageUrls,
+                thumbnail: "",
                 status: data.status ?? 'DRAFT',
                 includeService: data.includeService,
             },
@@ -291,6 +293,42 @@ export class JobService {
             }
         });
         return update;
+    }
+
+    async updateJObThumbnail(userId: string, jobId: string, thumbnail: Express.Multer.File) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+
+        const job = await this.prisma.job.findUnique({
+            where: {
+                id: jobId
+            }
+        });
+
+        if (!job) throw new NotFoundException("Job not found");
+
+        if (userId !== job?.userId) {
+            throw new BadRequestException("You are not permited access this route.");
+        };
+
+        const upload: any = await this.cloudinary.uploadImageFromBuffer(thumbnail.buffer, "jobs", `${Date.now()}-${thumbnail.originalname}`);
+
+        const update: any = await this.prisma.job.update({
+            where: {
+                id: jobId
+            },
+            data: {
+                thumbnail: upload.secure_url
+            }
+        });
+
+        return update;
+
     }
 
 }

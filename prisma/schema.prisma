@@ -222,6 +222,7 @@ model Job {
   basePrice       Decimal      @db.Decimal(10, 2)
   priceType       PriceType
   includeService  String[]
+  thumbnail       String?
   features        Json?
   images          String[]     @default([])
   videos          String[]     @default([])

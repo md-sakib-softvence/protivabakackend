@@ -3,20 +3,21 @@ import {
   Post,
   Body,
   UseInterceptors,
-  UploadedFiles,
   UseGuards,
   Get,
   Query,
   Param,
   Patch,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import {  FileInterceptor } from '@nestjs/platform-express';
 import { JobService } from './job.service';
 import { CreateJobDto } from './dto/create.job.dto';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
-import { UpdateJobDto, UpdateJobDtoPro } from './dto/update.job.dto';
+import {  UpdateJobDtoPro } from './dto/update.job.dto';
 import { ProviderGuard } from 'src/common/guards/provider.guard';
 @ApiTags("Job")
 @Controller('job')
@@ -41,7 +42,6 @@ export class JobController {
           type: 'string',
           enum: ['FIXED', 'HOURLY'],
         },
-
         includeService: {
           type: 'array',
           items: {
@@ -49,31 +49,27 @@ export class JobController {
             example: 'Fast delivery',
           },
         },
-
-        images: {
-          type: 'array',
-          items: {
-            type: 'string',
-            format: 'binary',
-          },
+        image: {
+          type: 'string',
+          format: 'binary',
         },
       },
+      required: ['categoryId', 'subCategoryId', 'title', 'description', 'basePrice', 'priceType', 'includeService', 'image'],
     },
   })
   @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'images', maxCount: 10 },
-    ]),
+    FileInterceptor('image')
   )
   async createJob(
     @Body() data: CreateJobDto,
-    @UploadedFiles()
-    files: {
-      images?: Express.Multer.File[];
-    },
+    @UploadedFile() image: Express.Multer.File,
     @GetUser('id') userId: string,
   ) {
-    return this.jobService.createJob(data, userId, files?.images);
+    if (!image) {
+      throw new BadRequestException("Image is required");
+    }
+
+    return this.jobService.createJob(data, userId, image);
   }
 
   @Get(":jobId/single-job")
@@ -93,94 +89,6 @@ export class JobController {
 
   }
 
-
-
-  // @Patch(':job_id/update-job')
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAuthGuard)
-  // @ApiConsumes('multipart/form-data')
-  // @ApiOperation({
-  //   summary: 'Update Job (Provider) Not Conplite This Route'
-  // })
-  // @ApiParam({
-  //   name: 'job_id',
-  //   description: 'Job ID',
-  //   example: 'cmlbqxr2m000024vnmq3pqeaj',
-  // })
-  // @ApiBody({
-  //   schema: {
-  //     type: 'object',
-  //     properties: {
-  //       title: {
-  //         type: 'string',
-  //         description: 'Job title',
-  //         example: 'Senior Web Developer'
-  //       },
-  //       description: {
-  //         type: 'string',
-  //         description: 'Job description',
-  //         example: 'Looking for an experienced developer with 5+ years experience'
-  //       },
-  //       basePrice: {
-  //         type: 'number',
-  //         description: 'Job base price',
-  //         example: 100
-  //       },
-  //       priceType: {
-  //         type: 'string',
-  //         enum: ['FIXED', 'HOURLY', 'NEGOTIABLE'],
-  //         description: 'Pricing model',
-  //         example: 'FIXED'
-  //       },
-  //       status: {
-  //         type: 'string',
-  //         enum: ['DRAFT', 'ACTIVE', 'PAUSED', 'CLOSED', 'DELETED'],
-  //         description: 'Job status',
-  //         example: 'ACTIVE'
-  //       },
-  //       categoryId: {
-  //         type: 'string',
-  //         description: 'Category ID',
-  //         example: 'cat_123456'
-  //       },
-  //       subCategoryId: {
-  //         type: 'string',
-  //         description: 'Sub-category ID',
-  //         example: 'subcat_123456'
-  //       },
-  //       includeService: {
-  //         type: 'string',
-  //         description: 'Full array to replace existing services (JSON string or comma-separated)',
-  //         example: '["Logo Design","Business Card","Brand Identity"]'
-  //       },
-  //       includeServiceRemove: {
-  //         type: 'string',
-  //         description: 'Services to remove from existing list (JSON string or comma-separated)',
-  //         example: '["Old Service 1","Old Service 2"]'
-  //       },
-  //       removedImages: {
-  //         type: 'string',
-  //         description: 'Image URLs to remove from existing list (JSON string or comma-separated)',
-  //         example: '["https://example.com/old-image1.jpg","https://example.com/old-image2.jpg"]'
-  //       },
-  //       images: {
-  //         type: 'array',
-  //         items: { type: 'string', format: 'binary' },
-  //         description: 'Upload new images (max 10)',
-  //       },
-  //     },
-  //   },
-  // })
-  // @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 10 }]))
-  // async updateJob(
-  //   @Param('job_id') jobId: string,
-  //   @Body() body: UpdateJobDto,
-  //   @UploadedFiles() files: { images?: Express.Multer.File[] },
-  //   @GetUser('id') userId: string,
-  // ) {
-  //   return this.jobService.updateJob(jobId, body, files?.images, userId);
-  // }
-
   @Patch(":jobId/update-jon-content")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, ProviderGuard)
@@ -193,6 +101,42 @@ export class JobController {
       data: result
     }
 
+  }
+
+
+  @Patch(':jobId/update/thumbnail')
+  @ApiOperation({ summary: 'Update job thumbnail' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiParam({
+    name: 'jobId',
+    type: String,
+    description: 'Job ID'
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        thumbnail: {
+          type: 'string',
+          format: 'binary'
+        }
+      }
+    }
+  })
+  @UseInterceptors(FileInterceptor('thumbnail'))
+  async updateJobThumbnail(
+    @GetUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @UploadedFile() thumbnail: Express.Multer.File
+  ) {
+
+    return this.jobService.updateJObThumbnail(
+      userId,
+      jobId,
+      thumbnail
+    );
   }
 
   @Get('my-job')

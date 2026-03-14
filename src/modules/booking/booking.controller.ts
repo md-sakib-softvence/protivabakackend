@@ -15,7 +15,7 @@ export class BookingController {
   @Get("all-booking")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get all bookings with pagination, status filter, and search' })
+  @ApiOperation({ summary: 'Get all bookings with pagination, status filter, and search (Only Can Admin)' })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default 10)' })
   @ApiQuery({ name: 'status', required: false, enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'REFUNDED'] })
