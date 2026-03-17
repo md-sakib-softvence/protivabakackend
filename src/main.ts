@@ -12,6 +12,8 @@ import { HttpExceptionFilter } from './common/filters';
 import { LoggingInterceptor, TransformInterceptor } from './common/interceptors';
 import rateLimit from 'express-rate-limit';
 import { Redis } from 'ioredis';
+import { IoAdapter } from '@nestjs/platform-socket.io';
+
 
 let apm: any;
 try {
@@ -278,6 +280,9 @@ export async function bootstrap() {
   setupSecurity(app, configService, nodeEnv);
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
+  app.useWebSocketAdapter(new IoAdapter(app));
+
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
 

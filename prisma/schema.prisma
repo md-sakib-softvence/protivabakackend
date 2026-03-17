@@ -56,6 +56,7 @@ model User {
   sessions           Session[]
   settings           UserSetting?
   withdrawals        Withdrawal[]
+  wallet             Wallet?
 
   @@index([email])
   @@index([phone])
@@ -216,10 +217,12 @@ model Job {
   categoryId      String
   subCategoryId   String?
   title           String
-  slug            String       @unique
+  slug            String?
   description     String
   basePrice       Decimal      @db.Decimal(10, 2)
   priceType       PriceType
+  includeService  String[]
+  thumbnail       String?
   features        Json?
   images          String[]     @default([])
   videos          String[]     @default([])
@@ -240,6 +243,7 @@ model Job {
   category        Category     @relation(fields: [categoryId], references: [id])
   subCategory     SubCategory? @relation(fields: [subCategoryId], references: [id])
   user            User         @relation(fields: [userId], references: [id])
+  reviews         Review[]
 
   @@index([userId, status])
   @@index([categoryId, status])
@@ -250,7 +254,7 @@ model Job {
 
 model Booking {
   id                 String          @id @default(cuid())
-  bookingNumber      String          @unique
+  bookingNumber      String?
   clientId           String
   providerId         String
   jobId              String
@@ -267,9 +271,9 @@ model Booking {
   contactPhone       String
   contactEmail       String?
   serviceAmount      Decimal         @db.Decimal(10, 2)
-  platformFee        Decimal         @db.Decimal(10, 2)
-  taxAmount          Decimal         @default(0) @db.Decimal(10, 2)
-  totalAmount        Decimal         @db.Decimal(10, 2)
+  platformFee        Decimal?        @db.Decimal(10, 2)
+  taxAmount          Decimal?        @default(0) @db.Decimal(10, 2)
+  totalAmount        Decimal?        @db.Decimal(10, 2)
   paymentMethod      String?
   paymentStatus      String          @default("PENDING")
   paidAt             DateTime?
@@ -346,25 +350,29 @@ model Subscription {
 }
 
 model Withdrawal {
-  id                String           @id @default(cuid())
-  withdrawalNumber  String           @unique
-  userId            String
-  amount            Decimal          @db.Decimal(10, 2)
-  fee               Decimal          @default(0) @db.Decimal(10, 2)
-  netAmount         Decimal          @db.Decimal(10, 2)
-  bankName          String
-  accountNumber     String
-  accountHolderName String
-  branchName        String?
-  routingNumber     String?
-  status            WithdrawalStatus @default(PENDING)
-  processedBy       String?
-  processedAt       DateTime?
-  rejectionReason   String?
-  requestedAt       DateTime         @default(now())
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  user              User             @relation(fields: [userId], references: [id])
+  id                             String             @id @default(cuid())
+  withdrawalNumber               String?
+  userId                         String
+  amount                         Decimal            @db.Decimal(10, 2)
+  fee                            Decimal            @default(0) @db.Decimal(10, 2)
+  netAmount                      Decimal            @db.Decimal(10, 2)
+  bankName                       String?
+  accountNumber                  String?
+  accountHolderName              String?
+  branchName                     String?
+  routingNumber                  String?
+  phoneNumber                    String?
+  mobileBankingType              MobileBankingType?
+  mobileBankingPaymentTakeNumber String?
+  bankType                       BankType
+  status                         WithdrawalStatus   @default(PENDING)
+  processedBy                    String?
+  processedAt                    DateTime?
+  rejectionReason                String?
+  requestedAt                    DateTime           @default(now())
+  createdAt                      DateTime           @default(now())
+  updatedAt                      DateTime           @updatedAt
+  user                           User               @relation(fields: [userId], references: [id])
 
   @@index([userId, status])
   @@index([status])
@@ -372,11 +380,20 @@ model Withdrawal {
   @@map("withdrawals")
 }
 
+model Wallet {
+  id     String @id @default(uuid())
+  userId String @unique
+  amount Int
+
+  user User @relation(fields: [userId], references: [id])
+}
+
 model Review {
   id           String   @id @default(cuid())
   bookingId    String   @unique
   senderId     String
   receiverId   String
+  jobId        String
   rating       Int      @db.SmallInt
   comment      String?
   images       String[] @default([])
@@ -389,6 +406,7 @@ model Review {
   booking      Booking  @relation(fields: [bookingId], references: [id])
   receiver     User     @relation("ReviewReceiver", fields: [receiverId], references: [id])
   sender       User     @relation("ReviewSender", fields: [senderId], references: [id])
+  job          Job      @relation(fields: [jobId], references: [id])
 
   @@index([receiverId, isVisible])
   @@index([createdAt])
@@ -539,6 +557,11 @@ enum BookingStatus {
   REFUNDED
 }
 
+enum BookingCompliteInProgress {
+  IN_PROGRESS
+  COMPLETED
+}
+
 enum ServiceLocation {
   CUSTOMER_LOCATION
   PROVIDER_LOCATION
@@ -574,6 +597,18 @@ enum WithdrawalStatus {
   COMPLETED
   REJECTED
   CANCELLED
+}
+
+enum BankType {
+  CARD_PAYMENT
+  MOBILE_BANKING
+}
+
+enum MobileBankingType {
+  BKASH
+  NAGAD
+  ROCKET
+  UPAY
 }
 
 enum MessageType {
