@@ -39,7 +39,7 @@ export class JobService {
         //     imageUrls = uploadResults.map((res: any) => res.secure_url);
         // }
 
-        const upload = await this.cloudinary.uploadImageFromBuffer(images.buffer, "jobs", `${Date.now()}-${images.originalname}`)
+        // const upload = await this.cloudinary.uploadImageFromBuffer(images.buffer, "jobs", `${Date.now()}-${images.originalname}`)
 
         const slug = slugify(data.title, { lower: true, strict: true });
 
