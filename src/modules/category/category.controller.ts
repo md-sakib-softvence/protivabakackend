@@ -142,6 +142,23 @@ export class CategoryController {
     };
   }
 
+  @Get("all-categoris-for-user")
+  @ApiOperation({ summary: 'Get all categories (paginated)' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 15 })
+  async getAllCategory(
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit = 15,
+  ) {
+    console.log("C-1")
+    const result = await this.categoryService.ClientHomeCategory(page, limit);
+
+    return {
+      success: true,
+      data: result
+    }
+
+  }
 
   @Get(':categoryId')
   @ApiBearerAuth()
@@ -156,20 +173,12 @@ export class CategoryController {
     };
   }
 
-  @Get("all-categoris")
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all categories (paginated)' })
-  @ApiQuery({ name: 'page', required: false, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, example: 15 })
-  async getAllCategory(
-    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit = 15,
-  ) {
-    return this.categoryService.getAllCategory(page, limit);
-  }
 
 
-  @Get(':categoryId/sub-categories')
+
+
+
+  @Get('sub-categories/:categoryId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all sub-categories of a category (paginated)' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -188,7 +197,7 @@ export class CategoryController {
     };
   }
 
-  @Delete(":categoryId/deete")
+  @Delete("deete/:categoryId")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @ApiOperation({

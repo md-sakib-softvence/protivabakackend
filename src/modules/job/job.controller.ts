@@ -10,14 +10,17 @@ import {
   Patch,
   UploadedFile,
   BadRequestException,
+  DefaultValuePipe,
+  ParseIntPipe,
+  ParseBoolPipe,
 } from '@nestjs/common';
-import {  FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JobService } from './job.service';
 import { CreateJobDto } from './dto/create.job.dto';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
-import {  UpdateJobDtoPro } from './dto/update.job.dto';
+import { UpdateJobDtoPro } from './dto/update.job.dto';
 import { ProviderGuard } from 'src/common/guards/provider.guard';
 @ApiTags("Job")
 @Controller('job')
@@ -98,6 +101,29 @@ export class JobController {
     return {
       success: true,
       message: "Job update successfully",
+      data: result
+    }
+
+  }
+
+  @Get('home-jobs')
+  @ApiOperation({ summary: 'Get all jobs for user homepage' })
+  @ApiQuery({ name: 'isPopuler', required: false, type: Boolean, example: true, description: 'Filter only popular jobs' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Items per page' })
+  async getAllJobForUserHomePage(
+    @Query('isPopuler', new DefaultValuePipe(false), ParseBoolPipe) isPopuler: boolean,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    const result = await this.jobService.getAllJobForUserHomePage(
+      isPopuler,
+      page,
+      limit,
+    );
+
+    return {
+      success: true,
       data: result
     }
 

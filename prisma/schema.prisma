@@ -236,6 +236,7 @@ model Job {
   metaTitle       String?
   metaDescription String?
   publishedAt     DateTime?
+  isPopuler       Boolean      @default(false)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   deletedAt       DateTime?

@@ -60,6 +60,40 @@ export class JobService {
         });
 
         return result;
+    };
+
+
+    async getAllJobForUserHomePage(isPopuler: boolean, page: number, limit: number ) {
+        const skip = (page - 1) * limit;
+
+        const whereCondition: any = {};
+
+        if (isPopuler) {
+            whereCondition.isPopuler = true;
+        }
+
+        const result = await this.prisma.job.findMany({
+            where: whereCondition,
+            skip: skip,
+            take: limit,
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        const total = await this.prisma.job.count({
+            where: whereCondition,
+        });
+
+        return {
+            meta: {
+                total,
+                page,
+                limit,
+                totalPage: Math.ceil(total / limit),
+            },
+            data: result,
+        };
     }
 
     async getSingleJob(jobId: string) {

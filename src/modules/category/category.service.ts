@@ -80,6 +80,7 @@ export class CategoryService {
     }
 
     async getSingleCategory(categoryId: string) {
+        console.log("Single Category hit")
         const result = await this.prisma.category.findUnique({
             where: {
                 id: categoryId
@@ -94,17 +95,17 @@ export class CategoryService {
 
     }
 
-    async getAllCategory(page = 1, limit = 15) {
+    async ClientHomeCategory(page = 1, limit = 15) {
+        console.log("S-1");
         const skip = (page - 1) * limit;
 
         const total = await this.prisma.category.count();
-
+        console.log("S-2")
         const categories = await this.prisma.category.findMany({
             skip,
-            take: limit,
-            orderBy: { createdAt: 'desc' }
+            take: limit
         });
-
+        console.log("S-3")
         return {
             page,
             limit,

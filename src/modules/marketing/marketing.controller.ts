@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { MarketingService } from './marketing.service';
-import { ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { CreateMarketingDto } from './dto/create.marketing.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpdateMarketingDto } from './dto/update.marketing.dto';
@@ -12,11 +12,12 @@ import { SubAdminGuard } from 'src/common/guards/sub.admin.guard';
 export class MarketingController {
   constructor(private readonly marketingService: MarketingService) { }
 
+  // @ApiBearerAuth()
   @Post("create")
   @ApiOperation({
     summary: "Create marketing banner (Only Can Super Admin)"
   })
-  @UseGuards(JwtAuthGuard, SubAdminGuard)
+  // @UseGuards(JwtAuthGuard, SubAdminGuard)
   @ApiConsumes("multipart/form-data")
   @ApiBody({
     schema: {
@@ -48,12 +49,12 @@ export class MarketingController {
     };
   }
 
-
+  // @ApiBearerAuth()
   @Put("update/:id")
   @ApiOperation({
     summary: "Update marketing banner (Only Can Super Admin)"
   })
-  @UseGuards(JwtAuthGuard, SubAdminGuard)
+  // @UseGuards(JwtAuthGuard, SubAdminGuard)
   @ApiConsumes("multipart/form-data")
   @ApiBody({
     schema: {
@@ -86,9 +87,10 @@ export class MarketingController {
     };
   }
 
+  // @ApiBearerAuth()
   @Patch("update-status/:id")
   @ApiOperation({ summary: "Update marketing banner status (Only Can Super Admin)" })
-  @UseGuards(JwtAuthGuard, SubAdminGuard)
+  // @UseGuards(JwtAuthGuard, SubAdminGuard)
   async updateBannerStatus(
     @Param("id") id: string,
     @Body() body: UpdateBannerStatusDto
@@ -102,9 +104,10 @@ export class MarketingController {
     };
   }
 
+  // @ApiBearerAuth()
   @Delete("delete/:id")
   @ApiOperation({ summary: "Delete marketing banner by ID (Only Can Super Admin)" })
-  @UseGuards(JwtAuthGuard, SubAdminGuard)
+  // @UseGuards(JwtAuthGuard, SubAdminGuard)
   @ApiParam({ name: "id", description: "Banner ID to delete", example: "ckl123abc456" })
   async deleteBanner(@Param("id") id: string) {
     const result = await this.marketingService.deleteBanner(id);
@@ -116,10 +119,10 @@ export class MarketingController {
     };
   };
 
-
+  // @ApiBearerAuth()
   @Get("admin/dashboard")
   @ApiOperation({ summary: "Get all banners for admin dashboard with stats & pagination (Only Can Super Admin)" })
-  @UseGuards(JwtAuthGuard, SubAdminGuard)
+  // @UseGuards(JwtAuthGuard, SubAdminGuard)
   @ApiQuery({ name: "page", required: false, type: Number, example: 1, description: "Page number (default 1)" })
   @ApiQuery({ name: "limit", required: false, type: Number, example: 10, description: "Number of banners per page (default 10)" })
   async getAllBannerForAdminDashboard(
@@ -136,6 +139,7 @@ export class MarketingController {
   };
 
 
+  // @ApiBearerAuth()
   @Get("user/banners")
   @ApiOperation({ summary: "Get all banners for users with pagination" })
   @ApiQuery({ name: "page", required: false, type: Number, example: 1, description: "Page number" })
