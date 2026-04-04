@@ -8,9 +8,26 @@ import { CreteBookingDto } from './dto/create.booking.dto';
 export class BookingService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async getAllBooking(page: number = 1, limit: number = 10, status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED", search?: string) {
-        const skip = (page - 1) * limit;
+    async getAllBooking(userId: string, page: number = 1, limit: number = 10, status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED", search?: string) {
 
+        const findUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                role: true,
+                adminPermissions : {
+                select : {
+                    isViewBooking : true
+                }
+            } }
+        });
+
+        if(findUser?.role === "SUB_ADMIN"){
+            if(!findUser?.adminPermissions?.isViewBooking){
+                throw new ForbiddenException("You don't have permission to view bookings");
+            }
+        }
+
+        const skip = (page - 1) * limit;
         const filters: any = {};
         if (status) filters.status = status;
         if (search) {

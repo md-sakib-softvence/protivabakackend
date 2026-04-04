@@ -16,17 +16,19 @@ export class BookingController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all bookings with pagination, status filter, and search (Only Can Admin)' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default 10)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Page number (default 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Items per page (default 10)' })
   @ApiQuery({ name: 'status', required: false, enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'REFUNDED'] })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by bookingNumber, serviceName or serviceDescription' })
+  @ApiQuery({ name: 'search', required: false, type: String, example: 'booking123', description: 'Search by bookingNumber, serviceName or serviceDescription' })
   async getAllBookings(
+    @GetUser("id") userId: string,
     @Query('page', ParseIntPipe) page = 1,
     @Query('limit', ParseIntPipe) limit = 10,
     @Query('status') status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED",
     @Query('search') search?: string,
   ) {
-    const result = await this.bookingService.getAllBooking(page, limit, status, search);
+    console.log("Api hit");
+    const result = await this.bookingService.getAllBooking(userId, page, limit, status, search);
 
     return {
       success: true,
