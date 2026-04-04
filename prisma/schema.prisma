@@ -161,13 +161,37 @@ model UserSetting {
 }
 
 model AdminPermission {
-  id          String       @id @default(cuid())
-  userId      String       @unique
-  permissions Permission[]
-  grantedBy   String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String       @id @default(cuid())
+  userId               String       @unique
+  // permissions          Permission[]
+
+  // Booking
+  isViewBooking        Boolean      @default(false)
+  isManageBooking      Boolean      @default(false)
+  isExportBooking      Boolean      @default(false)
+
+  // Provider
+  isViewProvider       Boolean      @default(false)
+  isManageProvider     Boolean      @default(false)
+
+  // User
+  isViewUser           Boolean      @default(false)
+  isManageUser         Boolean      @default(false)
+
+  // Category
+  isViewCategory       Boolean      @default(false)
+  isManageCategory     Boolean      @default(false)
+
+  // transection
+  isViewTransaction    Boolean      @default(false)
+  // withdrawal
+  isViewWithdrawal     Boolean      @default(false)
+  isManageWithdrawal   Boolean      @default(false)
+
+  grantedBy            String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("admin_permissions")
 }

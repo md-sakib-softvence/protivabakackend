@@ -22,6 +22,8 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserRole, UserStatus } from '@prisma/client';
 import { IEnv } from 'src/config/env.config';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { AdminUserDto } from './dto/admin.user.dto';
+import { UpdatePermissionDto } from './dto/update.permission.dto';
 
 @Injectable()
 export class AuthService {
@@ -385,4 +387,161 @@ export class AuthService {
             },
         });
     }
+
+    async createAdminUser(userId: string, dto: AdminUserDto) {
+
+        const requestingUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!requestingUser || requestingUser.role !== UserRole.SUPER_ADMIN) {
+            throw new UnauthorizedException('Only super admins can create admin users');
+        }
+
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
+
+        if (existingUser) {
+            throw new ConflictException('Email already registered');
+        }
+
+        const isPhoneTaken = await this.prisma.user.findFirst({
+            where: { phone: dto.phone },
+        });
+
+        if (isPhoneTaken) {
+            throw new ConflictException('Phone number already registered');
+        }
+
+        const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+        const adminUser = await this.prisma.user.create({
+            data: {
+                email: dto.email,
+                phone: dto.phone,
+                password: hashedPassword,
+                firstName: dto.firstName,
+                lastName: dto.lastName,
+                role: UserRole.SUB_ADMIN,
+                status: UserStatus.ACTIVE,
+                emailVerified: true,
+                phoneVerified: true,
+                verificationStatus: "VERIFIED"
+            },
+        });
+
+        await this.prisma.adminPermission.create({
+            data: {
+                userId: adminUser.id,
+                isViewBooking: dto.isViewBooking,
+                isManageBooking: dto.isManageBooking,
+                isExportBooking: dto.isExportBooking,
+                isViewProvider: dto.isViewProvider,
+                isManageProvider: dto.isManageProvider,
+                isViewUser: dto.isViewUser,
+                isManageUser: dto.isManageUser,
+                isViewCategory: dto.isViewCategory,
+                isManageCategory: dto.isManageCategory,
+                isViewTransaction: dto.isViewTransaction,
+                isViewWithdrawal: dto.isViewWithdrawal,
+                isManageWithdrawal: dto.isManageWithdrawal,
+            },
+        });
+
+        return {
+            user: {
+                id: adminUser.id,
+                email: adminUser.email,
+                firstName: adminUser.firstName,
+                lastName: adminUser.lastName,
+                role: adminUser.role,
+                status: adminUser.status,
+                emailVerified: adminUser.emailVerified,
+                phoneVerified: adminUser.phoneVerified,
+                verificationStatus: adminUser.verificationStatus,
+            },
+        };
+    };
+
+    async getSubAdminProfile(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                status: true,
+                emailVerified: true,
+                phoneVerified: true,
+                verificationStatus: true,
+                adminPermissions: {
+                    select: {
+                        isViewBooking: true,
+                        isManageBooking: true,
+                        isExportBooking: true,
+                        isViewProvider: true,
+                        isManageProvider: true,
+                        isViewUser: true,
+                        isManageUser: true,
+                        isViewCategory: true,
+                        isManageCategory: true,
+                        isViewTransaction: true,
+                        isViewWithdrawal: true,
+                        isManageWithdrawal: true,
+                    },
+                },
+            },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        if (user.role !== UserRole.SUB_ADMIN) {
+            throw new UnauthorizedException('Not a sub-admin user');
+        }
+
+        return user;
+
+    };
+
+    async updateAdminUserPermissions(userId: string, dto: UpdatePermissionDto) {
+        const requestingUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!requestingUser) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        if (requestingUser.role !== UserRole.SUPER_ADMIN) {
+            throw new UnauthorizedException('You are not a super-admin. Only super-admins can update permissions');
+        }
+
+        // Implementation for updating permissions would go here
+        const result = await this.prisma.adminPermission.update({
+            where: { userId: dto.userId },
+            data: {
+                isViewBooking: dto.isViewBooking,
+                isManageBooking: dto.isManageBooking,
+                isExportBooking: dto.isExportBooking,
+                isViewProvider: dto.isViewProvider,
+                isManageProvider: dto.isManageProvider,
+                isViewUser: dto.isViewUser,
+                isManageUser: dto.isManageUser,
+                isViewCategory: dto.isViewCategory,
+                isManageCategory: dto.isManageCategory,
+                isViewTransaction: dto.isViewTransaction,
+                isViewWithdrawal: dto.isViewWithdrawal,
+                isManageWithdrawal: dto.isManageWithdrawal,
+            },
+        });
+
+        return { result };
+
+    }
+
 }
