@@ -42,21 +42,24 @@ model User {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   deletedAt          DateTime?
-  adminPermissions   AdminPermission?
-  bookings           Booking[]
-  contactInfo        ContactInfo?
-  jobs               Job[]
-  receivedMessages   Message[]          @relation("MessageReceiver")
-  sentMessages       Message[]          @relation("MessageSender")
-  notifications      Notification[]
-  payments           Payment[]
-  providerProfile    ProviderProfile?
-  receivedReviews    Review[]           @relation("ReviewReceiver")
-  sentReviews        Review[]           @relation("ReviewSender")
-  sessions           Session[]
-  settings           UserSetting?
-  withdrawals        Withdrawal[]
-  wallet             Wallet?
+
+  clientBookings   Booking[]        @relation("ClientBookings")
+  providerBookings Booking[]        @relation("ProviderBookings")
+  adminPermissions AdminPermission?
+  bookings         Booking[]
+  contactInfo      ContactInfo?
+  jobs             Job[]
+  receivedMessages Message[]        @relation("MessageReceiver")
+  sentMessages     Message[]        @relation("MessageSender")
+  notifications    Notification[]
+  payments         Payment[]
+  providerProfile  ProviderProfile?
+  receivedReviews  Review[]         @relation("ReviewReceiver")
+  sentReviews      Review[]         @relation("ReviewSender")
+  sessions         Session[]
+  settings         UserSetting?
+  withdrawals      Withdrawal[]
+  wallet           Wallet?
 
   @@index([email])
   @@index([phone])
@@ -161,37 +164,37 @@ model UserSetting {
 }
 
 model AdminPermission {
-  id                   String       @id @default(cuid())
-  userId               String       @unique
+  id     String @id @default(cuid())
+  userId String @unique
   // permissions          Permission[]
 
   // Booking
-  isViewBooking        Boolean      @default(false)
-  isManageBooking      Boolean      @default(false)
-  isExportBooking      Boolean      @default(false)
+  isViewBooking   Boolean @default(false)
+  isManageBooking Boolean @default(false)
+  isExportBooking Boolean @default(false)
 
   // Provider
-  isViewProvider       Boolean      @default(false)
-  isManageProvider     Boolean      @default(false)
+  isViewProvider   Boolean @default(false)
+  isManageProvider Boolean @default(false)
 
   // User
-  isViewUser           Boolean      @default(false)
-  isManageUser         Boolean      @default(false)
+  isViewUser   Boolean @default(false)
+  isManageUser Boolean @default(false)
 
   // Category
-  isViewCategory       Boolean      @default(false)
-  isManageCategory     Boolean      @default(false)
+  isViewCategory   Boolean @default(false)
+  isManageCategory Boolean @default(false)
 
   // transection
-  isViewTransaction    Boolean      @default(false)
+  isViewTransaction  Boolean @default(false)
   // withdrawal
-  isViewWithdrawal     Boolean      @default(false)
-  isManageWithdrawal   Boolean      @default(false)
+  isViewWithdrawal   Boolean @default(false)
+  isManageWithdrawal Boolean @default(false)
 
-  grantedBy            String?
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
-  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("admin_permissions")
 }
@@ -310,10 +313,13 @@ model Booking {
   completedAt        DateTime?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
-  client             User            @relation(fields: [clientId], references: [id])
+  client             User            @relation("ClientBookings", fields: [clientId], references: [id])
+  provider           User            @relation("ProviderBookings", fields: [providerId], references: [id])
   job                Job             @relation(fields: [jobId], references: [id])
   payment            Payment?
   review             Review?
+  user               User?           @relation(fields: [userId], references: [id])
+  userId             String?
 
   @@index([clientId, status])
   @@index([providerId, status])
