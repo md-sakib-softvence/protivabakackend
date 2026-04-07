@@ -12,7 +12,9 @@ export class SubAdminGuard implements CanActivate {
       throw new ForbiddenException('You must be logged in to access this route');
     }
 
-    if (user.role !== 'SUB_ADMIN') {
+    const allowedRoles = ["SUPER_ADMIN", "SUB_ADMIN"];
+
+    if (!allowedRoles.includes(user.role)) {
       throw new ForbiddenException('You do not have permission to access this route');
     }
 

@@ -3,11 +3,15 @@ import { UserService } from './user.service';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { UserStatus } from '@prisma/client';
+import { GetUser } from 'src/common/decorators';
+import { SubAdminGuard } from 'src/common/guards/sub.admin.guard';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) { }
 
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, SubAdminGuard)
   @Get("all-provider")
   @ApiOperation({
     summary: 'Get all providers with pagination, search and verification filter (Only Can Admin)',
@@ -27,12 +31,13 @@ export class UserController {
     description: 'Providers fetched successfully',
   })
   async getAllProviders(
+    @GetUser('id') userId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('search') search?: string,
-    @Query('status') status?: string,
+    @Query('status') status?: string
   ) {
-    const result = await this.userService.getAllProvider(page, limit, search, status);
+    const result = await this.userService.getAllProvider(userId, page, limit, search, status);
 
     return {
       success: true,
@@ -82,7 +87,7 @@ export class UserController {
 
   @Get("get-all-user")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, SubAdminGuard)
   @ApiOperation({
     summary: 'Get all user with pagination, search and verification filter (Only Can Admin)',
   })
@@ -96,12 +101,13 @@ export class UserController {
     enum: ['PENDING', 'ACTIVE', 'SUSPENDED', 'BANNED', "DELETED"],
   })
   async getAllUser(
+    @GetUser('id') userId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     @Query('search') search?: string,
     @Query('status') status?: UserStatus,
   ) {
-    const result = await this.userService.getAllUser(page, limit, search, status);
+    const result = await this.userService.getAllUser(userId, page, limit, search, status);
 
     return {
       success: true,
@@ -117,4 +123,21 @@ export class UserController {
     return this.userService.getSingleProviderWithReviewAndService(providerId);
   }
 
+  @Patch("delete-user")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, SubAdminGuard)
+  @ApiOperation({
+    summary: "Delete user (Only Can Admin)"
+  })
+  @ApiQuery({ name: "userId" })
+  async deleteUser(@GetUser("id") adminUserId: string, @Query("userId") userId: string) {
+    console.log(`Admin User ID: ${adminUserId}, User ID to Delete: ${userId}`); // Debug log
+    const result = await this.userService.deleteUser(adminUserId, userId);
+
+    return {
+      success: true,
+      message: "User deleted successfully",
+      data: result
+    };
+  }
 }

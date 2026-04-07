@@ -71,8 +71,8 @@ export class BookingService {
 
         if (!booking) throw new NotFoundException(ERROR_MESSAGES.RECORD_NOT_FOUND);
         if (booking.providerId !== providerId) throw new ForbiddenException("You are not allowed to update this booking");
-        if (booking.status === "ACCEPTED") throw new BadRequestException("Booking already complite");
-        if (booking.status === "COMPLETED") throw new BadRequestException("Booking already complite");
+        if (booking.status === "ACCEPTED") throw new BadRequestException("Booking already accepted");
+        if (booking.status === "COMPLETED") throw new BadRequestException("Booking already completed");
 
         const result = await this.prisma.booking.update({
             where: { id: bookingId },

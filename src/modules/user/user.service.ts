@@ -7,7 +7,28 @@ export class UserService {
 
     constructor(private readonly prisma: PrismaService) { }
 
-    async getAllProvider(page: number = 1, limit: number = 10, search?: string, status?: string) {
+    async getAllProvider(userId: string, page: number = 1, limit: number = 10, search?: string, status?: string) {
+
+        const findUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                role: true,
+                adminPermissions: {
+                    select: {
+                        isViewProvider: true
+                    }
+                }
+            }
+        });
+
+        if (!findUser) throw new NotFoundException("Admin user not found");
+
+        if (findUser?.role === "SUB_ADMIN") {
+            if (!findUser?.adminPermissions?.isViewProvider) {
+                throw new NotFoundException("You don't have permission to view provider");
+            }
+        }
+
         const skip = (page - 1) * limit;
 
         const filter: any = {
@@ -49,7 +70,7 @@ export class UserService {
                     },
                 },
                 providerProfile: true
-            },
+            }
         });
 
         const total = await this.prisma.user.count({ where: filter });
@@ -86,8 +107,7 @@ export class UserService {
                 totalPages: Math.ceil(total / limit)
             },
         };
-    }
-
+    };
 
     async providerVerificationStatusUpdate(providerId: string, status: "VERIFIED" | "REJECTED") {
         const result = await this.prisma.user.update({
@@ -106,7 +126,26 @@ export class UserService {
 
     }
 
-    async getAllUser(page: number, limit: number, search?: string, status?: "PENDING" | "ACTIVE" | "SUSPENDED" | "BANNED" | "DELETED") {
+    async getAllUser(userId: string, page: number, limit: number, search?: string, status?: "PENDING" | "ACTIVE" | "SUSPENDED" | "BANNED" | "DELETED") {
+
+        const findUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                role: true,
+                adminPermissions: {
+                    select: {
+                        isManageUser: true
+                    }
+                }
+            }
+        });
+
+        if (!findUser) throw new NotFoundException("Admin user not found");
+        if (findUser?.role === "SUB_ADMIN") {
+            if (!findUser?.adminPermissions?.isManageUser) {
+                throw new NotFoundException("You don't have permission to view user");
+            }
+        }
 
         const skip = (page - 1) * limit;
 
@@ -184,6 +223,51 @@ export class UserService {
             ...user
         };
 
+    };
+
+    async deleteUser(adminUserId: string, userId: string) {
+
+        const findUser = await this.prisma.user.findUnique({
+            where: { id: adminUserId },
+            select: {
+                role: true,
+                adminPermissions: {
+                    select: {
+                        isManageUser: true
+                    }
+                }
+            }
+        });
+
+        if (!findUser) throw new NotFoundException("Admin user not found");
+
+        if (findUser?.role === "SUB_ADMIN") {
+            if (!findUser?.adminPermissions?.isManageUser) {
+                throw new NotFoundException("You don't have permission to delete user");
+            }
+        };
+
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId
+            }
+        });
+
+        if (!user) throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+
+        const result = await this.prisma.user.update({
+            where: {
+                id: userId
+            },
+            data: {
+                status: "DELETED"
+            }
+        });
+
+        if (!result) throw new NotFoundException(ERROR_MESSAGES.USER_NOT_FOUND);
+
+        return result;
     }
+
 
 }
