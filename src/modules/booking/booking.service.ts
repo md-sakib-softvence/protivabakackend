@@ -14,15 +14,16 @@ export class BookingService {
             where: { id: userId },
             select: {
                 role: true,
-                adminPermissions : {
-                select : {
-                    isViewBooking : true
+                adminPermissions: {
+                    select: {
+                        isViewBooking: true
+                    }
                 }
-            } }
+            }
         });
 
-        if(findUser?.role === "SUB_ADMIN"){
-            if(!findUser?.adminPermissions?.isViewBooking){
+        if (findUser?.role === "SUB_ADMIN") {
+            if (!findUser?.adminPermissions?.isViewBooking) {
                 throw new ForbiddenException("You don't have permission to view bookings");
             }
         }
@@ -47,7 +48,21 @@ export class BookingService {
                 createdAt: "desc"
             },
             include: {
-                job: true
+                job: true,
+                client: {
+                    select: {
+                        phone: true,
+                        firstName: true,
+                        lastName: true,
+                    }
+                },
+                provider: {
+                    select: {
+                        phone: true,
+                        firstName: true,
+                        lastName: true,
+                    }
+                }
             }
         })
 
