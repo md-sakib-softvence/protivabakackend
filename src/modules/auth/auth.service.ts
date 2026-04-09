@@ -388,6 +388,25 @@ export class AuthService {
         });
     }
 
+    async getMe(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            // select: {
+            //     password: false,
+            //     otp: false,
+            //     otpExpiry: false,
+            //     refreshToken: false,
+            // }
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        };
+
+        const { password, otp, otpExpiry, refreshToken, ...rest } = user;
+
+        return { rest };
+    }
     async createAdminUser(userId: string, dto: AdminUserDto) {
 
         const requestingUser = await this.prisma.user.findUnique({
