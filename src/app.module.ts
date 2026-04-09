@@ -13,6 +13,7 @@ import { BookingModule } from './modules/booking/booking.module';
 import { WithdrawModule } from './modules/withdraw/withdraw.module';
 import { MessageModule } from './modules/message/message.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
+import { PaymentModule } from './modules/payment/payment.module';
 import envConfig from './config/env.config';
 
 @Module({
@@ -20,7 +21,7 @@ import envConfig from './config/env.config';
     isGlobal: true,
     load: [envConfig],
     cache: true
-  }), AuthModule, UserModule, PrismaModule, CategoryModule, SubCategoryModule, CloudinaryModule, JobModule, BookingModule, WithdrawModule, MessageModule, MarketingModule],
+  }), AuthModule, UserModule, PrismaModule, CategoryModule, SubCategoryModule, CloudinaryModule, JobModule, BookingModule, WithdrawModule, MessageModule, MarketingModule, PaymentModule],
   controllers: [AppController],
   providers: [AppService],
 })
