@@ -13,6 +13,19 @@ export class PaymentService {
 
         const transactionId = `txn_${Date.now()}-${Math.random()}`;
 
+        const findBooking = await this.Prisma.booking.findUnique({
+            where: { id: bookingId },
+        });
+
+        if (!findBooking) throw new Error("Invalid booking ID");
+
+        if (findBooking.paymentStatus === "COMPLETED") throw new Error("Payment already completed for this booking");
+        if (findBooking.paymentStatus === "PENDING") throw new Error("Booking not accepted yet. Please wait for confirmation");
+        if (findBooking.status === "CANCELLED") throw new Error("Booking is cancelled. Cannot make payment");
+        if (findBooking.status === "COMPLETED") throw new Error("Booking is already completed. Cannot make payment");
+        if (findBooking.status === "REJECTED") throw new Error("Booking is rejected. Cannot make payment");
+
+
         // 1. Save payment in DB
         const payment = await this.Prisma.payment.create({
             data: {
@@ -67,6 +80,18 @@ export class PaymentService {
             payment,
             gatewayUrl: response.data.GatewayPageURL,
         };
+    };
+
+
+    async myPaymentTransactions(userId: string, page = 1, limit = 10) {
+        const result = await this.Prisma.payment.findMany({
+            where: { userId },
+            skip: (page - 1) * limit,
+            take: limit,
+        });
+
+        return result
+
     }
 
 }

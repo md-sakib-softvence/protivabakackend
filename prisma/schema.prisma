@@ -303,7 +303,7 @@ model Booking {
   taxAmount          Decimal?        @default(0) @db.Decimal(10, 2)
   totalAmount        Decimal?        @db.Decimal(10, 2)
   paymentMethod      String?
-  paymentStatus      String          @default("PENDING")
+  paymentStatus      PaymentStatus   @default(PENDING)
   paidAt             DateTime?
   status             BookingStatus   @default(PENDING)
   cancellationReason String?
@@ -334,7 +334,7 @@ model Booking {
 model Payment {
   id              String         @id @default(cuid())
   transactionId   String         @unique
-  bookingId       String?
+  bookingId       String
   userId          String
   gateway         PaymentGateway @default(SSLCOMMERZ)
   method          String?
