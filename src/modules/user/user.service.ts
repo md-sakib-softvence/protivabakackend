@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { UserStatus } from '@prisma/client';
 import { ERROR_MESSAGES } from 'src/common/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -269,5 +270,61 @@ export class UserService {
         return result;
     }
 
+    async getAllSubAdmin(
+        page: number,
+        limit: number,
+        status?: UserStatus,
+        search?: string
+    ) {
+        const whereCondition: any = {
+            role: "SUB_ADMIN",
+        };
+
+        // ✅ status filter
+        if (status) {
+            whereCondition.status = status;
+        }
+
+        // ✅ search filter (⚠️ only existing fields ব্যবহার করো)
+        if (search) {
+            whereCondition.OR = [
+                {
+                    email: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+                {
+                    phone: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
+            ];
+        };
+
+        const admins = await this.prisma.user.findMany({
+            where: whereCondition,
+            skip: (page - 1) * limit,
+            take: limit,
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+
+        const total = await this.prisma.user.count({
+            where: whereCondition,
+        });
+
+        return {
+            data: admins,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPage: Math.ceil(total / limit),
+            },
+        };
+    }
 
 }

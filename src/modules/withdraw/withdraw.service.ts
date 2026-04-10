@@ -139,6 +139,14 @@ export class WithdrawService {
             }
         });
 
+        await this.prisma.notification.create({
+            data: {
+                userId: result.userId,
+                type: "WITHDRAWAL_APPROVED",
+                title: "You Withdraw request approved",
+                message: `Your withdrawal request ${ckeck.amount} has been approved. We are currently processing your transaction, and the amount will be credited to your account shortly. Thank you for your patience.`
+            }
+        })
 
         return result
 
@@ -159,10 +167,18 @@ export class WithdrawService {
                 id: withdrawId
             },
             data: {
-                status: "APPROVED"
+                status: "REJECTED"
             }
         });
 
+        await this.prisma.notification.create({
+            data: {
+                userId: ckeck.userId,
+                type: 'WITHDRAWAL_REJECTED',
+                title: 'Withdraw Request Rejected',
+                message: `We regret to inform you that your withdraw request of amount ${ckeck.amount} has been rejected. If you have any questions or need further assistance, please contact our support team.`,
+            },
+        });
 
 
         return result
@@ -266,6 +282,15 @@ export class WithdrawService {
             }
         });
 
+        await this.prisma.notification.create({
+            data: {
+                userId,
+                type: 'WITHDRAW_REQUEST',
+                title: 'Withdraw Request Submitted',
+                message: `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`,
+            }
+        });
+
         return requestWithdraw;
 
     };
@@ -288,6 +313,16 @@ export class WithdrawService {
                 userId: userId,
                 bankType: "MOBILE_BANKING",
                 ...data
+            }
+        });
+
+
+        await this.prisma.notification.create({
+            data: {
+                userId,
+                type: 'WITHDRAW_REQUEST',
+                title: 'Withdraw Request Submitted',
+                message: `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`,
             }
         });
 

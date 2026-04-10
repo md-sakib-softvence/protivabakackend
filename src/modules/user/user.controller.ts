@@ -5,10 +5,36 @@ import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { UserStatus } from '@prisma/client';
 import { GetUser } from 'src/common/decorators';
 import { SubAdminGuard } from 'src/common/guards/sub.admin.guard';
+import { SuperAdminGuard } from 'src/common/guards/admin.guard';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) { }
+
+
+
+  @Get('get-sub-admins')
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @ApiOperation({ summary: "All super admin (Only Can Super Admin)" })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, enum: UserStatus })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  async getAllSubAdmin(
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('status') status?: UserStatus,
+    @Query('search') search?: string,
+  ) {
+    return await this.userService.getAllSubAdmin(
+      Number(page),
+      Number(limit),
+      status,
+      search,
+    );
+  }
+
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, SubAdminGuard)
@@ -139,5 +165,6 @@ export class UserController {
       message: "User deleted successfully",
       data: result
     };
-  }
+  };
+
 }
