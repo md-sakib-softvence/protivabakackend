@@ -15,13 +15,14 @@ import { MessageModule } from './modules/message/message.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import envConfig from './config/env.config';
+import { SettingModule } from './modules/setting/setting.module';
 
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
     load: [envConfig],
     cache: true
-  }), AuthModule, UserModule, PrismaModule, CategoryModule, SubCategoryModule, CloudinaryModule, JobModule, BookingModule, WithdrawModule, MessageModule, MarketingModule, PaymentModule],
+  }), AuthModule, UserModule, PrismaModule, CategoryModule, SubCategoryModule, CloudinaryModule, JobModule, BookingModule, WithdrawModule, MessageModule, MarketingModule, PaymentModule, SettingModule],
   controllers: [AppController],
   providers: [AppService],
 })

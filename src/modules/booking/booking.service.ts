@@ -94,6 +94,24 @@ export class BookingService {
             data: { status }
         });
 
+        await this.prisma.notification.create({
+            data: {
+                userId: booking.clientId,
+                type: `${status === "ACCEPTED" ? "BOOKING_ACCEPTED" : "BOOKING_REJECTED"}`,
+                title: `Booking ${status === "ACCEPTED" ? "Accepted" : "Rejected"}`,
+                message: `Your booking for ${booking.serviceName} has been ${status === "ACCEPTED" ? "accepted" : "rejected"} by the provider. Please check the details of your booking for more information.`,
+            },
+        })
+
+        await this.prisma.notification.create({
+            data: {
+                userId: booking.providerId,
+                type: `${status === "ACCEPTED" ? "BOOKING_ACCEPTED" : "BOOKING_REJECTED"}`,
+                title: `Booking ${status === "ACCEPTED" ? "Accepted" : "Rejected"}`,
+                message: `You have ${status === "ACCEPTED" ? "accepted" : "rejected"} the booking for ${booking.serviceName}. Please check the details of the booking for more information.`,
+            },
+        });
+
         return result;
 
     }
@@ -168,6 +186,25 @@ export class BookingService {
             }
         });
 
+        await this.prisma.notification.create({
+            data: {
+                userId: data.providerId,
+                type: 'BOOKING_NEW',
+                title: 'New Booking Request',
+                message: `You have a new booking request for ${data.serviceName}. Please review the details and respond to the client.`,
+            },
+        });
+
+        await this.prisma.notification.create({
+            data: {
+                userId,
+                type: 'BOOKINK_REQUESTED',
+                title: 'Booking Request Sent',
+                message: `Your booking request for ${data.serviceName} has been sent to the provider. You will be notified once the provider responds to your request.`,
+            },
+        });
+
+
         return createBooking;
     }
 
@@ -207,6 +244,25 @@ export class BookingService {
             }
         });
 
+
+        await this.prisma.notification.create({
+            data: {
+                userId: booking.clientId,
+                type: `${status === "COMPLETED" ? "BOOKING_COMPLETED" : "BOOKING_IN_PROGRESS"}`,
+                title: `Booking ${status === "COMPLETED" ? "Completed" : "In Progress"}`,
+                message: `Your booking for ${booking.serviceName} has been marked as ${status === "COMPLETED" ? "completed" : "in progress"} by the provider. Please check the details of your booking for more information.`,
+            },
+        });
+
+
+        await this.prisma.notification.create({
+            data: {
+                userId: booking.providerId,
+                type: `${status === "COMPLETED" ? "BOOKING_COMPLETED" : "BOOKING_IN_PROGRESS"}`,
+                title: `Booking ${status === "COMPLETED" ? "Completed" : "In Progress"}`,
+                message: `You have marked the booking for ${booking.serviceName} as ${status === "COMPLETED" ? "completed" : "in progress"}. Please check the details of the booking for more information.`,
+            }
+        })
 
         return result;
 

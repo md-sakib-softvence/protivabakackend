@@ -11,7 +11,7 @@ export class PaymentService {
     async makePayment(userId: string, createPaymentDto: CreatePaymentDto) {
         const { bookingId, amount } = createPaymentDto;
 
-        const transactionId = `txn_${Date.now()}-${Math.random()}`;
+        const transactionId = `txn_${Date.now()}-${userId.slice(0, 5)}-${Math.random()}`;
 
         const findBooking = await this.Prisma.booking.findUnique({
             where: { id: bookingId },

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, NotFoundException, Post, Query, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
-import { ApiBearerAuth, ApiExcludeEndpoint, ApiHideProperty, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { CreatePaymentDto } from './dto/payment.dto';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
@@ -50,6 +50,16 @@ export class PaymentController {
           status: "IN_PROGRESS"
         }
       });
+
+      await this.Prisma.notification.create({
+        data: {
+          userId: findPayment.userId,
+          type: 'PAYMENT_SUCCESS',
+          title: 'Payment Successful',
+          message: `Your payment for booking ID ${findPayment.bookingId} has been successfully processed. Thank you for your payment!`,
+        },
+      });
+
     }
 
     return { message: 'Payment success' };
@@ -59,9 +69,18 @@ export class PaymentController {
   @Post('/fail')
   @ApiExcludeEndpoint()
   async paymentFail(@Body() body: any) {
-    await this.Prisma.payment.update({
+    const payment = await this.Prisma.payment.update({
       where: { transactionId: body.tran_id },
       data: { status: 'FAILED' },
+    });
+
+    await this.Prisma.notification.create({
+      data: {
+        userId: payment.userId,
+        type: 'PAYMENT_FAILED',
+        title: 'Payment Failed',
+        message: `Your payment for booking ID ${payment.bookingId} has failed. Please try again or contact support if the issue persists.`,
+      },
     });
 
     return { message: 'Payment failed' };
@@ -72,9 +91,18 @@ export class PaymentController {
   @Post('/cancel')
   @ApiExcludeEndpoint()
   async paymentCancel(@Body() body: any) {
-    await this.Prisma.payment.update({
+    const payment = await this.Prisma.payment.update({
       where: { transactionId: body.tran_id },
       data: { status: 'CANCELLED' },
+    });
+
+    await this.Prisma.notification.create({
+      data: {
+        userId: payment.userId,
+        type: 'PAYMENT_CANCELLED',
+        title: 'Payment Cancelled',
+        message: `Your payment for booking ID ${payment.bookingId} has been cancelled. If this was a mistake, please try making the payment again.`,
+      },
     });
 
     return { message: 'Payment cancelled' };

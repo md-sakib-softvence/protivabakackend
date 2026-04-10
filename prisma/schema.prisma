@@ -7,41 +7,45 @@ datasource db {
 }
 
 model User {
-  id                 String             @id @default(cuid())
-  email              String             @unique
-  phone              String?            @unique
-  password           String?
-  firstName          String
-  lastName           String
-  bio                String?
-  avatar             String?
-  streetAddress      String?
-  city               String?
-  state              String?
-  zipCode            String?
-  country            String             @default("BD")
-  role               UserRole           @default(CLIENT)
-  status             UserStatus         @default(PENDING)
-  verificationStatus VerificationStatus @default(UNVERIFIED)
-  emailVerified      Boolean            @default(false)
-  phoneVerified      Boolean            @default(false)
-  twoFactorEnabled   Boolean            @default(false)
-  twoFactorSecret    String?
-  refreshToken       String?
-  googleId           String?            @unique
-  appleId            String?            @unique
-  otp                String?
-  otpExpiry          DateTime?
-  otpAttempts        Int                @default(0)
-  lastLogin          DateTime?
-  lastActive         DateTime?
-  loginAttempts      Int                @default(0)
-  lockedUntil        DateTime?
-  language           String             @default("en")
-  timezone           String             @default("Asia/Dhaka")
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  deletedAt          DateTime?
+  id                       String             @id @default(cuid())
+  email                    String             @unique
+  phone                    String?            @unique
+  password                 String?
+  firstName                String
+  lastName                 String
+  bio                      String?
+  avatar                   String?
+  streetAddress            String?
+  city                     String?
+  state                    String?
+  zipCode                  String?
+  country                  String             @default("BD")
+  role                     UserRole           @default(CLIENT)
+  status                   UserStatus         @default(PENDING)
+  verificationStatus       VerificationStatus @default(UNVERIFIED)
+  emailVerified            Boolean            @default(false)
+  phoneVerified            Boolean            @default(false)
+  twoFactorEnabled         Boolean            @default(false)
+  twoFactorSecret          String?
+  refreshToken             String?
+  googleId                 String?            @unique
+  appleId                  String?            @unique
+  otp                      String?
+  otpExpiry                DateTime?
+  otpAttempts              Int                @default(0)
+  lastLogin                DateTime?
+  lastActive               DateTime?
+  loginAttempts            Int                @default(0)
+  lockedUntil              DateTime?
+  language                 String             @default("en")
+  timezone                 String             @default("Asia/Dhaka")
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  deletedAt                DateTime?
+  isContactInfoPublic      Boolean            @default(false)
+  isProfilePublic          Boolean            @default(false)
+  isNotificationEnabled    Boolean            @default(false)
+  isBookingReminderEnabled Boolean            @default(false)
 
   clientBookings   Booking[]        @relation("ClientBookings")
   providerBookings Booking[]        @relation("ProviderBookings")
@@ -663,16 +667,44 @@ enum BannerStatus {
 
 enum NotificationType {
   BOOKING_NEW
+  BOOKINK_REQUESTED
   BOOKING_ACCEPTED
   BOOKING_REJECTED
   BOOKING_COMPLETED
+  BOOKING_IN_PROGRESS
   BOOKING_CANCELLED
   PAYMENT_RECEIVED
   PAYMENT_RELEASED
   MESSAGE_NEW
   REVIEW_NEW
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+  SUBSCRIPTION_RENEWAL
+  PAYMENT_SUCCESS
+  PAYMENT_CANCELLED
+  WITHDRAW_REQUEST
   WITHDRAWAL_APPROVED
   WITHDRAWAL_REJECTED
   SUBSCRIPTION_EXPIRING
   SYSTEM
+  PROFILE_UPDATE
+  PROFILE_APPROVED
+  PROFILE_REJECTED
+  SETTINGS_UPDATE
+  
+  REGISTRATION_SUCCESS
+  ADMMIN_PERMISSION_GRANTED
+  USER_ADMIN_PERMISSION_GRANTED
+  BOOKING_PERMISSION_GRANTED
+  CATEGORY_PERMISSION_GRANTED
+  TRANSACTION_PERMISSION_GRANTED
+  PROVIDER_PERMISSION_GRANTED
+  WITHDRAWAL_PERMISSION_GRANTED
+  ADMMIN_PERMISSION_REVOKED
+  USER_ADMIN_PERMISSION_REVOKED
+  BOOKING_PERMISSION_REVOKED
+  CATEGORY_PERMISSION_REVOKED
+  TRANSACTION_PERMISSION_REVOKED
+  PROVIDER_PERMISSION_REVOKED
+  WITHDRAWAL_PERMISSION_REVOKED
 }
