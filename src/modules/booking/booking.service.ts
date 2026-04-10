@@ -292,6 +292,17 @@ export class BookingService {
             },
             data: result
         }
+    };
+
+
+    async userTotalBooking(userId: string) {
+        const totalBooking = await this.prisma.booking.count({
+            where: {
+                clientId: userId
+            }
+        });
+
+        return totalBooking;
     }
 
 }

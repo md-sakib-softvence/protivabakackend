@@ -860,4 +860,9 @@ export class AuthService {
         return rest;
 
     }
+
+    async addNewProvider(){
+        
+    }
+
 }
