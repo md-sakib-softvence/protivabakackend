@@ -13,6 +13,27 @@ export class TransectionService {
             orderBy: {
                 createdAt: "desc",
             },
+            include: {
+                user: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        streetAddress: true,
+                        city: true,
+                        zipCode: true,
+                        contactInfo: true,
+                        phone: true,
+                        email: true
+                    },
+                    include: {
+                        jobs: {
+                            select: {
+                                title: true
+                            }
+                        }
+                    }
+                }
+            }
         });
 
         const total = await this.prisma.payment.count();
