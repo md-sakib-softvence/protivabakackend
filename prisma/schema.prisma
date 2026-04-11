@@ -274,8 +274,8 @@ model Job {
   deletedAt       DateTime?
   bookings        Booking[]
   category        Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  subCategory     SubCategory? @relation(fields: [subCategoryId], references: [id] , onDelete: Cascade)
-  user            User         @relation(fields: [userId], references: [id] , onDelete: Cascade)
+  subCategory     SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviews         Review[]
 
   @@index([userId, status])
@@ -286,7 +286,7 @@ model Job {
 }
 
 model Booking {
-  id                 String          @id @default(cuid())
+  id                 String            @id @default(cuid())
   bookingNumber      String?
   clientId           String
   providerId         String
@@ -298,34 +298,37 @@ model Booking {
   scheduledAt        DateTime?
   serviceLocation    ServiceLocation
   locationAddress    String?
-  locationLatitude   Decimal?        @db.Decimal(10, 8)
-  locationLongitude  Decimal?        @db.Decimal(11, 8)
+  locationLatitude   Decimal?          @db.Decimal(10, 8)
+  locationLongitude  Decimal?          @db.Decimal(11, 8)
   locationDetails    String?
   contactPhone       String
   contactEmail       String?
-  serviceAmount      Decimal         @db.Decimal(10, 2)
-  platformFee        Decimal?        @db.Decimal(10, 2)
-  taxAmount          Decimal?        @default(0) @db.Decimal(10, 2)
-  totalAmount        Decimal?        @db.Decimal(10, 2)
+  serviceAmount      Decimal           @db.Decimal(10, 2)
+  platformFee        Decimal?          @db.Decimal(10, 2)
+  taxAmount          Decimal?          @default(0) @db.Decimal(10, 2)
+  totalAmount        Decimal?          @db.Decimal(10, 2)
   paymentMethod      String?
-  paymentStatus      PaymentStatus   @default(PENDING)
+  paymentStatus      PaymentStatus     @default(PENDING)
   paidAt             DateTime?
-  status             BookingStatus   @default(PENDING)
+  status             BookingStatus     @default(PENDING)
   cancellationReason String?
   cancelledBy        String?
   cancelledAt        DateTime?
   message            String?
   completedAt        DateTime?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  client             User            @relation("ClientBookings", fields: [clientId], references: [id], onDelete: Cascade)
-  provider           User            @relation("ProviderBookings", fields: [providerId], references: [id], onDelete: Cascade)
-  job                Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  payment            Payment?        @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  client             User              @relation("ClientBookings", fields: [clientId], references: [id], onDelete: Cascade)
+  provider           User              @relation("ProviderBookings", fields: [providerId], references: [id], onDelete: Cascade)
+  job                Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  payment            Payment?          @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   review             Review?
-  user               User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId             String?
   paymentId          String?
+  conversationRoom   ConversationRoom?
+  locationUpdates    LocationUpdate[]
+  callSessions       CallSession[]
 
   @@index([clientId, status])
   @@index([providerId, status])
@@ -355,7 +358,7 @@ model Payment {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id] , onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookings Booking[]
 
   @@index([userId])
@@ -443,7 +446,7 @@ model Review {
   updatedAt    DateTime @updatedAt
   booking      Booking  @relation(fields: [bookingId], references: [id])
   receiver     User     @relation("ReviewReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  sender       User     @relation("ReviewSender", fields: [senderId], references: [id] , onDelete: Cascade)
+  sender       User     @relation("ReviewSender", fields: [senderId], references: [id], onDelete: Cascade)
   job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([receiverId, isVisible])
@@ -526,7 +529,80 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+// ── NEW: MESSAGING ROOMS ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
+model ConversationRoom {
+  id         String    @id @default(cuid())
+  bookingId  String    @unique
+  clientId   String
+  providerId String
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime? // set when booking completes/cancels
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime? // soft-delete of whole room
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([clientId, providerId])
+  @@index([isActive])
+  @@map("conversation_rooms")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ── NEW: LOCATION TRACKING ───────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+
+model LocationUpdate {
+  id        String       @id @default(cuid())
+  bookingId String
+  userId    String
+  role      TrackingRole
+  latitude  Decimal      @db.Decimal(10, 8)
+  longitude Decimal      @db.Decimal(11, 8)
+  accuracy  Float? // meters
+  heading   Float? // degrees 0–360
+  speed     Float? // m/s
+  altitude  Float? // meters
+  timestamp DateTime     @default(now())
+  createdAt DateTime     @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId, userId, timestamp])
+  @@index([bookingId, timestamp])
+  @@map("location_updates")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ── NEW: CALL SESSIONS ───────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CallSession {
+  id        String       @id @default(cuid())
+  bookingId String
+  callerId  String
+  calleeId  String
+  roomId    String       @unique // WebRTC channel or Agora channel name
+  provider  CallProvider @default(WEBRTC)
+  type      CallType     @default(VOICE)
+  status    CallStatus   @default(INITIATED)
+  startedAt DateTime?
+  endedAt   DateTime?
+  duration  Int? // seconds
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([callerId, calleeId])
+  @@index([status])
+  @@map("call_sessions")
+}
 
 enum UserRole {
   SUPER_ADMIN
@@ -612,6 +688,35 @@ enum PaymentGateway {
   STRIPE
   PAYPAL
   CASH
+}
+
+// ENUMS — new
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum TrackingRole {
+  CLIENT
+  PROVIDER
+}
+
+enum CallProvider {
+  WEBRTC
+  AGORA
+  TWILIO
+}
+
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  ACCEPTED
+  ONGOING
+  ENDED
+  MISSED
+  REJECTED
 }
 
 enum PaymentStatus {
