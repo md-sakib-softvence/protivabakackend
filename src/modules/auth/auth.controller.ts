@@ -30,6 +30,9 @@ import {
 import { GetUser, Public } from 'src/common/decorators';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
+import { AdminUserDto } from './dto/admin.user.dto';
+import { UpdatePermissionDto } from './dto/update.permission.dto';
+import { UpdateProfileDto } from './dto/update.profile.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -153,5 +156,21 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Current user data' })
   async getMe(@GetUser() user: any) {
     return { user };
+  }
+
+
+  @Patch('profile')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update user profile' })
+  @ApiResponse({ status: 200, description: 'User profile updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  async updateUserProfile(@GetUser('id') userId: string, @Body() dto: UpdateProfileDto) {
+    const result = await this.authService.updateUserProfile(userId, dto);
+    return {
+      success: true,
+      message: 'User profile updated successfully',
+      data: { ...result }
+    }
   }
 }

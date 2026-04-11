@@ -7,41 +7,46 @@ datasource db {
 }
 
 model User {
-  id                 String             @id @default(cuid())
-  email              String             @unique
-  phone              String?            @unique
-  password           String?
-  firstName          String
-  lastName           String
-  bio                String?
-  avatar             String?
-  streetAddress      String?
-  city               String?
-  state              String?
-  zipCode            String?
-  country            String             @default("BD")
-  role               UserRole           @default(CLIENT)
-  status             UserStatus         @default(PENDING)
-  verificationStatus VerificationStatus @default(UNVERIFIED)
-  emailVerified      Boolean            @default(false)
-  phoneVerified      Boolean            @default(false)
-  twoFactorEnabled   Boolean            @default(false)
-  twoFactorSecret    String?
-  refreshToken       String?
-  googleId           String?            @unique
-  appleId            String?            @unique
-  otp                String?
-  otpExpiry          DateTime?
-  otpAttempts        Int                @default(0)
-  lastLogin          DateTime?
-  lastActive         DateTime?
-  loginAttempts      Int                @default(0)
-  lockedUntil        DateTime?
-  language           String             @default("en")
-  timezone           String             @default("Asia/Dhaka")
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  deletedAt          DateTime?
+  id                          String             @id @default(cuid())
+  email                       String             @unique
+  phone                       String?            @unique
+  password                    String?
+  firstName                   String
+  lastName                    String
+  bio                         String?
+  avatar                      String?
+  streetAddress               String?
+  city                        String?
+  state                       String?
+  zipCode                     String?
+  country                     String             @default("BD")
+  role                        UserRole           @default(CLIENT)
+  status                      UserStatus         @default(PENDING)
+  verificationStatus          VerificationStatus @default(UNVERIFIED)
+  emailVerified               Boolean            @default(false)
+  phoneVerified               Boolean            @default(false)
+  twoFactorEnabled            Boolean            @default(false)
+  twoFactorSecret             String?
+  refreshToken                String?
+  googleId                    String?            @unique
+  appleId                     String?            @unique
+  otp                         String?
+  otpExpiry                   DateTime?
+  otpAttempts                 Int                @default(0)
+  lastLogin                   DateTime?
+  lastActive                  DateTime?
+  providerServiceAvailability Boolean            @default(true)
+  loginAttempts               Int                @default(0)
+  lockedUntil                 DateTime?
+  language                    String             @default("en")
+  timezone                    String             @default("Asia/Dhaka")
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+  deletedAt                   DateTime?
+  isContactInfoPublic         Boolean            @default(false)
+  isProfilePublic             Boolean            @default(false)
+  isNotificationEnabled       Boolean            @default(false)
+  isBookingReminderEnabled    Boolean            @default(false)
 
   clientBookings   Booking[]        @relation("ClientBookings")
   providerBookings Booking[]        @relation("ProviderBookings")
@@ -268,9 +273,9 @@ model Job {
   updatedAt       DateTime     @updatedAt
   deletedAt       DateTime?
   bookings        Booking[]
-  category        Category     @relation(fields: [categoryId], references: [id])
-  subCategory     SubCategory? @relation(fields: [subCategoryId], references: [id])
-  user            User         @relation(fields: [userId], references: [id])
+  category        Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  subCategory     SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviews         Review[]
 
   @@index([userId, status])
@@ -281,7 +286,7 @@ model Job {
 }
 
 model Booking {
-  id                 String          @id @default(cuid())
+  id                 String            @id @default(cuid())
   bookingNumber      String?
   clientId           String
   providerId         String
@@ -293,34 +298,37 @@ model Booking {
   scheduledAt        DateTime?
   serviceLocation    ServiceLocation
   locationAddress    String?
-  locationLatitude   Decimal?        @db.Decimal(10, 8)
-  locationLongitude  Decimal?        @db.Decimal(11, 8)
+  locationLatitude   Decimal?          @db.Decimal(10, 8)
+  locationLongitude  Decimal?          @db.Decimal(11, 8)
   locationDetails    String?
   contactPhone       String
   contactEmail       String?
-  serviceAmount      Decimal         @db.Decimal(10, 2)
-  platformFee        Decimal?        @db.Decimal(10, 2)
-  taxAmount          Decimal?        @default(0) @db.Decimal(10, 2)
-  totalAmount        Decimal?        @db.Decimal(10, 2)
+  serviceAmount      Decimal           @db.Decimal(10, 2)
+  platformFee        Decimal?          @db.Decimal(10, 2)
+  taxAmount          Decimal?          @default(0) @db.Decimal(10, 2)
+  totalAmount        Decimal?          @db.Decimal(10, 2)
   paymentMethod      String?
-  paymentStatus      PaymentStatus   @default(PENDING)
+  paymentStatus      PaymentStatus     @default(PENDING)
   paidAt             DateTime?
-  status             BookingStatus   @default(PENDING)
+  status             BookingStatus     @default(PENDING)
   cancellationReason String?
   cancelledBy        String?
   cancelledAt        DateTime?
   message            String?
   completedAt        DateTime?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  client             User            @relation("ClientBookings", fields: [clientId], references: [id])
-  provider           User            @relation("ProviderBookings", fields: [providerId], references: [id])
-  job                Job             @relation(fields: [jobId], references: [id])
-  payment            Payment?        @relation(fields: [paymentId], references: [id])
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  client             User              @relation("ClientBookings", fields: [clientId], references: [id], onDelete: Cascade)
+  provider           User              @relation("ProviderBookings", fields: [providerId], references: [id], onDelete: Cascade)
+  job                Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  payment            Payment?          @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   review             Review?
-  user               User?           @relation(fields: [userId], references: [id])
+  user               User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId             String?
   paymentId          String?
+  conversationRoom   ConversationRoom?
+  locationUpdates    LocationUpdate[]
+  callSessions       CallSession[]
 
   @@index([clientId, status])
   @@index([providerId, status])
@@ -353,7 +361,7 @@ model Payment {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id])
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookings Booking[]
 
   @@index([userId])
@@ -408,7 +416,7 @@ model Withdrawal {
   requestedAt                    DateTime           @default(now())
   createdAt                      DateTime           @default(now())
   updatedAt                      DateTime           @updatedAt
-  user                           User               @relation(fields: [userId], references: [id])
+  user                           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
   @@index([status])
@@ -421,7 +429,7 @@ model Wallet {
   userId String @unique
   amount Int
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Review {
@@ -440,9 +448,9 @@ model Review {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   booking      Booking  @relation(fields: [bookingId], references: [id])
-  receiver     User     @relation("ReviewReceiver", fields: [receiverId], references: [id])
-  sender       User     @relation("ReviewSender", fields: [senderId], references: [id])
-  job          Job      @relation(fields: [jobId], references: [id])
+  receiver     User     @relation("ReviewReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender       User     @relation("ReviewSender", fields: [senderId], references: [id], onDelete: Cascade)
+  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([receiverId, isVisible])
   @@index([createdAt])
@@ -462,8 +470,8 @@ model Message {
   deletedAt   DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  receiver    User        @relation("MessageReceiver", fields: [receiverId], references: [id])
-  sender      User        @relation("MessageSender", fields: [senderId], references: [id])
+  receiver    User        @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender      User        @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId, isRead])
@@ -533,10 +541,10 @@ model ConversationRoom {
   clientId   String
   providerId String
   isActive   Boolean   @default(true)
-  expiresAt  DateTime?           // set when booking completes/cancels
+  expiresAt  DateTime? // set when booking completes/cancels
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?           // soft-delete of whole room
+  deletedAt  DateTime? // soft-delete of whole room
 
   booking Booking @relation(fields: [bookingId], references: [id])
 
@@ -557,10 +565,10 @@ model LocationUpdate {
   role      TrackingRole
   latitude  Decimal      @db.Decimal(10, 8)
   longitude Decimal      @db.Decimal(11, 8)
-  accuracy  Float?       // meters
-  heading   Float?       // degrees 0–360
-  speed     Float?       // m/s
-  altitude  Float?       // meters
+  accuracy  Float? // meters
+  heading   Float? // degrees 0–360
+  speed     Float? // m/s
+  altitude  Float? // meters
   timestamp DateTime     @default(now())
   createdAt DateTime     @default(now())
 
@@ -586,7 +594,7 @@ model CallSession {
   status    CallStatus   @default(INITIATED)
   startedAt DateTime?
   endedAt   DateTime?
-  duration  Int?                 // seconds
+  duration  Int? // seconds
   metadata  Json?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
@@ -685,6 +693,35 @@ enum PaymentGateway {
   CASH
 }
 
+// ENUMS — new
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum TrackingRole {
+  CLIENT
+  PROVIDER
+}
+
+enum CallProvider {
+  WEBRTC
+  AGORA
+  TWILIO
+}
+
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  ACCEPTED
+  ONGOING
+  ENDED
+  MISSED
+  REJECTED
+}
+
 enum PaymentStatus {
   PENDING
   PROCESSING
@@ -741,18 +778,46 @@ enum BannerStatus {
 
 enum NotificationType {
   BOOKING_NEW
+  BOOKINK_REQUESTED
   BOOKING_ACCEPTED
   BOOKING_REJECTED
   BOOKING_COMPLETED
+  BOOKING_IN_PROGRESS
   BOOKING_CANCELLED
   PAYMENT_RECEIVED
   PAYMENT_RELEASED
   MESSAGE_NEW
   REVIEW_NEW
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+  SUBSCRIPTION_RENEWAL
+  PAYMENT_SUCCESS
+  PAYMENT_CANCELLED
+  WITHDRAW_REQUEST
   WITHDRAWAL_APPROVED
   WITHDRAWAL_REJECTED
   SUBSCRIPTION_EXPIRING
   SYSTEM
+  PROFILE_UPDATE
+  PROFILE_APPROVED
+  PROFILE_REJECTED
+  SETTINGS_UPDATE
+
+  REGISTRATION_SUCCESS
+  ADMMIN_PERMISSION_GRANTED
+  USER_ADMIN_PERMISSION_GRANTED
+  BOOKING_PERMISSION_GRANTED
+  CATEGORY_PERMISSION_GRANTED
+  TRANSACTION_PERMISSION_GRANTED
+  PROVIDER_PERMISSION_GRANTED
+  WITHDRAWAL_PERMISSION_GRANTED
+  ADMMIN_PERMISSION_REVOKED
+  USER_ADMIN_PERMISSION_REVOKED
+  BOOKING_PERMISSION_REVOKED
+  CATEGORY_PERMISSION_REVOKED
+  TRANSACTION_PERMISSION_REVOKED
+  PROVIDER_PERMISSION_REVOKED
+  WITHDRAWAL_PERMISSION_REVOKED
 }
 
 // ENUMS — new

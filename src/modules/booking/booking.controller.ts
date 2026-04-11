@@ -159,6 +159,15 @@ export class BookingController {
       message: "Recent bookings fetched successfully",
       ...result
     };
+  };
+
+  @Get('user-total-booking/:userId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiParam({ name: 'userId', type: String })
+  async userBooking(@Param('userId') userId: string) {
+    return this.bookingService.userTotalBooking(userId);
   }
+
 
 }
