@@ -6,7 +6,6 @@ export class TransectionService {
     constructor(private prisma: PrismaService) { }
 
     async getAllTransection(page: number, limit: number) {
-
         const transections = await this.prisma.payment.findMany({
             skip: (page - 1) * limit,
             take: limit,
@@ -23,9 +22,8 @@ export class TransectionService {
                         zipCode: true,
                         contactInfo: true,
                         phone: true,
-                        email: true
-                    },
-                    include: {
+                        email: true,
+
                         jobs: {
                             select: {
                                 title: true
