@@ -526,6 +526,8 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+
+
 enum UserRole {
   SUPER_ADMIN
   SUB_ADMIN
