@@ -337,6 +337,9 @@ model Booking {
   @@index([createdAt])
   @@index([scheduledAt])
   @@map("bookings")
+  conversationRooms ConversationRoom[]
+  locationUpdates LocationUpdate[]
+  callSessions CallSession[]
 }
 
 model Payment {
@@ -815,4 +818,33 @@ enum NotificationType {
   TRANSACTION_PERMISSION_REVOKED
   PROVIDER_PERMISSION_REVOKED
   WITHDRAWAL_PERMISSION_REVOKED
+}
+
+// ENUMS — new
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum TrackingRole {
+  CLIENT
+  PROVIDER
+}
+
+enum CallProvider {
+  WEBRTC
+  AGORA
+  TWILIO
+}
+
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  ACCEPTED
+  ONGOING
+  ENDED
+  MISSED
+  REJECTED
 }
