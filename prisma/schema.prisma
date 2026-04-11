@@ -329,6 +329,9 @@ model Booking {
   @@index([createdAt])
   @@index([scheduledAt])
   @@map("bookings")
+  conversationRooms ConversationRoom[]
+  locationUpdates LocationUpdate[]
+  callSessions CallSession[]
 }
 
 model Payment {
@@ -521,6 +524,81 @@ model ActivityLog {
   @@map("activity_logs")
 }
 
+// ── NEW: MESSAGING ROOMS ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ConversationRoom {
+  id         String    @id @default(cuid())
+  bookingId  String    @unique
+  clientId   String
+  providerId String
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime?           // set when booking completes/cancels
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?           // soft-delete of whole room
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([clientId, providerId])
+  @@index([isActive])
+  @@map("conversation_rooms")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ── NEW: LOCATION TRACKING ───────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+
+model LocationUpdate {
+  id        String       @id @default(cuid())
+  bookingId String
+  userId    String
+  role      TrackingRole
+  latitude  Decimal      @db.Decimal(10, 8)
+  longitude Decimal      @db.Decimal(11, 8)
+  accuracy  Float?       // meters
+  heading   Float?       // degrees 0–360
+  speed     Float?       // m/s
+  altitude  Float?       // meters
+  timestamp DateTime     @default(now())
+  createdAt DateTime     @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId, userId, timestamp])
+  @@index([bookingId, timestamp])
+  @@map("location_updates")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ── NEW: CALL SESSIONS ───────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CallSession {
+  id        String       @id @default(cuid())
+  bookingId String
+  callerId  String
+  calleeId  String
+  roomId    String       @unique // WebRTC channel or Agora channel name
+  provider  CallProvider @default(WEBRTC)
+  type      CallType     @default(VOICE)
+  status    CallStatus   @default(INITIATED)
+  startedAt DateTime?
+  endedAt   DateTime?
+  duration  Int?                 // seconds
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([callerId, calleeId])
+  @@index([status])
+  @@map("call_sessions")
+}
+
 enum UserRole {
   SUPER_ADMIN
   SUB_ADMIN
@@ -675,4 +753,33 @@ enum NotificationType {
   WITHDRAWAL_REJECTED
   SUBSCRIPTION_EXPIRING
   SYSTEM
+}
+
+// ENUMS — new
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum TrackingRole {
+  CLIENT
+  PROVIDER
+}
+
+enum CallProvider {
+  WEBRTC
+  AGORA
+  TWILIO
+}
+
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  ACCEPTED
+  ONGOING
+  ENDED
+  MISSED
+  REJECTED
 }

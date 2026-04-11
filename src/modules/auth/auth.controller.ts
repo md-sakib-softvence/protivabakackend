@@ -8,7 +8,6 @@ import {
   Req,
   Headers,
   UseGuards,
-  Patch,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,8 +30,6 @@ import {
 import { GetUser, Public } from 'src/common/decorators';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
-import { AdminUserDto } from './dto/admin.user.dto';
-import { UpdatePermissionDto } from './dto/update.permission.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -67,7 +64,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Resend OTP' })
   @ApiResponse({ status: 200, description: 'OTP sent successfully' })
   async resendOtp(@Body() dto: ResendOtpDto) {
-    return this.authService.resendOtp(dto.email);
+    return this.authService.resendOtp(dto);
   }
 
   @Public()
@@ -155,53 +152,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user' })
   @ApiResponse({ status: 200, description: 'Current user data' })
   async getMe(@GetUser() user: any) {
-    const users = await this.authService.getMe(user.id);
-    return {
-      success: true,
-      data: users
-    }
-  };
-
-
-  @Post('admin/user/create')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Create admin user (Only for super admins)' })
-  @ApiResponse({ status: 201, description: 'Admin user created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async createAdminUser(@Body() dto: AdminUserDto, @GetUser('id') userId: string) {
-    const result = await this.authService.createAdminUser(userId, dto);
-    return {
-      success: true,
-      message: 'Admin user created successfully',
-      data: { ...result }
-    }
-  }
-
-  @Get('sub_admin/profile')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get sub-admin profile' })
-  @ApiResponse({ status: 200, description: 'Sub-admin profile data' })
-  async getSubAdminProfile(@GetUser('id') userId: string) {
-    const user = await this.authService.getSubAdminProfile(userId);
     return { user };
-  };
-
-
-  @Patch('admin/user/permissions')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Update admin user permissions (Only for super admins)' })
-  @ApiResponse({ status: 200, description: 'Admin user permissions updated successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async updateAdminUserPermissions(@Body() dto: UpdatePermissionDto, @GetUser('id') userId: string) {
-    const result = await this.authService.updateAdminUserPermissions(userId, dto);
-    return {
-      success: true,
-      message: 'Admin user permissions updated successfully',
-      data: { ...result }
-    }
   }
-
 }
