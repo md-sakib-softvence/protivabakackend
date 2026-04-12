@@ -21,6 +21,7 @@ import { LocationModule } from './modules/location/location.module';
 import { MessageModule } from './modules/message/message.module';
 import { CallModule } from './modules/call/call.module';
 import { ReviewModule } from './modules/review/review.module';
+import { ExpartRecommendationModule } from './modules/expart-recommendation/expart-recommendation.module';
 
 @Module({
   imports: [
@@ -61,7 +62,8 @@ import { ReviewModule } from './modules/review/review.module';
     LocationModule,
     MessageModule,
     CallModule,
-    ReviewModule
+    ReviewModule,
+    ExpartRecommendationModule
   ],
 
   controllers: [AppController],
