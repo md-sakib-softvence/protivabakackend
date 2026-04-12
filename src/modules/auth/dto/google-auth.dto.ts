@@ -5,5 +5,5 @@ export class GoogleAuthDto {
   @ApiProperty({ description: 'Google OAuth token' })
   @IsString()
   @IsNotEmpty()
-  token: string;
+  token!: string;
 }

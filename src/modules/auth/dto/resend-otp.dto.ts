@@ -4,5 +4,5 @@ import { IsEmail } from 'class-validator';
 export class ResendOtpDto {
   @ApiProperty({ example: 'john@example.com' })
   @IsEmail()
-  email: string;
+  email!: string;
 }
