@@ -200,6 +200,7 @@ export class JobController {
   }
 
   @Patch('make-populer/:id')
+  @ApiOperation({summary : "Make Populer Job (Only Can Admin)"})
   async makePopuler(
     @Param('id') jobId: string,
     @Body('isPopuler', ParseBoolPipe) isPopuler: boolean,
