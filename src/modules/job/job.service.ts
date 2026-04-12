@@ -39,7 +39,9 @@ export class JobService {
         //     imageUrls = uploadResults.map((res: any) => res.secure_url);
         // }
 
-        // const upload = await this.cloudinary.uploadImageFromBuffer(images.buffer, "jobs", `${Date.now()}-${images.originalname}`)
+        const upload : any = await this.cloudinary.uploadImageFromBuffer(images.buffer, "jobs", `${Date.now()}-${images.originalname}`);
+
+        console.log(upload);
 
         const slug = slugify(data.title, { lower: true, strict: true });
 
@@ -53,7 +55,7 @@ export class JobService {
                 basePrice: data.basePrice,
                 priceType: data.priceType,
                 description: data.description,
-                thumbnail: "",
+                thumbnail: upload.secure_url,
                 status: data.status ?? 'DRAFT',
                 includeService: data.includeService,
             },
