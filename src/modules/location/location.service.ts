@@ -6,7 +6,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-
 import { TrackingRole } from '@prisma/client';
 import { GetLocationHistoryDto, UpdateLocationDto } from './dto/location.dto';
 
@@ -29,22 +28,20 @@ export interface TrackingState {
   provider?: LocationPoint;
   distanceMeters?: number;
   etaMinutes?: number;
+  calculatedAt?: string;
 }
 
 @Injectable()
 export class LocationService {
   private readonly logger = new Logger(LocationService.name);
 
-  // In-memory cache of latest location per (bookingId, userId)
-  // For production consider Redis
+  // In-memory cache: key = "bookingId:userId"
   private readonly latestLocations = new Map<string, LocationPoint>();
 
   constructor(private readonly prisma: PrismaService) {}
 
   // ─── Update Location ──────────────────────────────────────────────────────
-
   async updateLocation(userId: string, dto: UpdateLocationDto): Promise<LocationPoint> {
-    // Validate booking and access
     const booking = await this.prisma.booking.findUnique({
       where: { id: dto.bookingId },
       select: { clientId: true, providerId: true, status: true },
@@ -66,7 +63,7 @@ export class LocationService {
 
     const role: TrackingRole = isProvider ? TrackingRole.PROVIDER : TrackingRole.CLIENT;
 
-    // Persist to DB
+    // Save to database
     const update = await this.prisma.locationUpdate.create({
       data: {
         bookingId: dto.bookingId,
@@ -94,14 +91,14 @@ export class LocationService {
       timestamp: update.timestamp,
     };
 
-    // Update in-memory cache
+    // Update cache
     this.latestLocations.set(`${dto.bookingId}:${userId}`, point);
 
+    this.logger.log(`Location updated for ${role} in booking ${dto.bookingId}`);
     return point;
   }
 
-  // ─── Get Current Positions ────────────────────────────────────────────────
-
+  // ─── Get Current Locations (Fixed & Improved) ─────────────────────────────
   async getCurrentLocations(bookingId: string, userId: string): Promise<TrackingState> {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
@@ -109,17 +106,18 @@ export class LocationService {
     });
 
     if (!booking) throw new NotFoundException('Booking not found');
+
     if (booking.clientId !== userId && booking.providerId !== userId) {
       throw new ForbiddenException('Access denied');
     }
 
-    // Try cache first, fallback to DB
     const clientKey = `${bookingId}:${booking.clientId}`;
     const providerKey = `${bookingId}:${booking.providerId}`;
 
     let clientLocation = this.latestLocations.get(clientKey);
     let providerLocation = this.latestLocations.get(providerKey);
 
+    // Fallback to database if not in cache
     if (!clientLocation) {
       clientLocation = await this.getLatestFromDB(bookingId, booking.clientId);
       if (clientLocation) this.latestLocations.set(clientKey, clientLocation);
@@ -132,26 +130,31 @@ export class LocationService {
 
     const state: TrackingState = {
       bookingId,
-      client: clientLocation,
-      provider: providerLocation,
+      client: clientLocation || undefined,
+      provider: providerLocation || undefined,
+      calculatedAt: new Date().toISOString(),
     };
 
-    // Calculate distance & ETA if both positions available
+    // Calculate distance and ETA only if both locations exist
     if (clientLocation && providerLocation) {
       state.distanceMeters = this.haversineDistance(
-        clientLocation.latitude, clientLocation.longitude,
-        providerLocation.latitude, providerLocation.longitude,
+        clientLocation.latitude,
+        clientLocation.longitude,
+        providerLocation.latitude,
+        providerLocation.longitude,
       );
-      // Rough ETA: assume 30 km/h average speed if not moving
-      const speedMs = providerLocation.speed ?? 8.33; // ~30 km/h
-      state.etaMinutes = Math.ceil(state.distanceMeters / speedMs / 60);
+
+      // ETA calculation (assuming average speed in m/s)
+      const speedMs = providerLocation.speed ?? 8.33; // ~30 km/h default
+      if (speedMs > 0) {
+        state.etaMinutes = Math.ceil(state.distanceMeters / (speedMs * 60));
+      }
     }
 
     return state;
   }
 
   // ─── Location History ─────────────────────────────────────────────────────
-
   async getLocationHistory(userId: string, dto: GetLocationHistoryDto): Promise<LocationPoint[]> {
     const booking = await this.prisma.booking.findUnique({
       where: { id: dto.bookingId },
@@ -194,8 +197,7 @@ export class LocationService {
     }));
   }
 
-  // ─── Internal Helpers ─────────────────────────────────────────────────────
-
+  // ─── Private Helpers ──────────────────────────────────────────────────────
   private async getLatestFromDB(
     bookingId: string,
     userId: string,
@@ -221,20 +223,22 @@ export class LocationService {
     };
   }
 
-  /**
-   * Haversine formula — returns distance in meters.
-   */
-  haversineDistance(
-    lat1: number, lon1: number,
-    lat2: number, lon2: number,
+  private haversineDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
   ): number {
     const R = 6_371_000; // Earth radius in meters
     const toRad = (d: number) => (d * Math.PI) / 180;
+
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
+
     const a =
       Math.sin(dLat / 2) ** 2 +
       Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 }
