@@ -199,4 +199,18 @@ export class JobController {
     return this.jobService.singleJobWithReview(jobId);
   }
 
+  @Patch('make-populer/:id')
+  @ApiOperation({summary : "Make Populer Job (Only Can Admin)"})
+  async makePopuler(
+    @Param('id') jobId: string,
+    @Body('isPopuler', ParseBoolPipe) isPopuler: boolean,
+  ) {
+    await this.jobService.makePopuler(jobId, isPopuler);
+
+    return {
+      success: true,
+      message: `Job ${isPopuler ? 'marked as popular' : 'removed from popular'}`,
+    };
+  }
+
 }

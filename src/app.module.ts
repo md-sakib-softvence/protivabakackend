@@ -22,6 +22,7 @@ import { MessageModule } from './modules/message/message.module';
 import { CallModule } from './modules/call/call.module';
 import { ReviewModule } from './modules/review/review.module';
 import { ExpartRecommendationModule } from './modules/expart-recommendation/expart-recommendation.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { ExpartRecommendationModule } from './modules/expart-recommendation/expa
     MessageModule,
     CallModule,
     ReviewModule,
+    AnalyticsModule,
     ExpartRecommendationModule
   ],
 
