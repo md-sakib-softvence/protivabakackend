@@ -460,10 +460,13 @@ model Message {
   readAt      DateTime?
   isDeleted   Boolean     @default(false)
   deletedAt   DateTime?
+  metadata     Json?
+  
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   receiver    User        @relation("MessageReceiver", fields: [receiverId], references: [id])
   sender      User        @relation("MessageSender", fields: [senderId], references: [id])
+  
 
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId, isRead])

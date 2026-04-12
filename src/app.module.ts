@@ -16,6 +16,9 @@ import { PaymentModule } from './modules/payment/payment.module';
 import envConfig, { IEnv } from './config/env.config';
 import { EmailModule } from './common/email/email.module';
 import { JwtModule } from '@nestjs/jwt';
+import { LocationModule } from './modules/location/location.module';
+import { MessageModule } from './modules/message/message.module';
+import { CallModule } from './modules/call/call.module';
 
 @Module({
   imports: [
@@ -53,6 +56,9 @@ import { JwtModule } from '@nestjs/jwt';
     EmailModule,
     MarketingModule,
     PaymentModule,
+    LocationModule,
+    MessageModule,
+    CallModule
   ],
   controllers: [AppController],
   providers: [AppService],
