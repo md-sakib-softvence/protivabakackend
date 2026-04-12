@@ -173,5 +173,49 @@ export class AuthController {
       message: 'User profile updated successfully',
       data: { ...result }
     }
+  };
+
+
+  @Post('admin/user/create')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Create admin user (Only for super admins)' })
+  @ApiResponse({ status: 201, description: 'Admin user created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  async createAdminUser(@Body() dto: AdminUserDto, @GetUser('id') userId: string) {
+    const result = await this.authService.createAdminUser(userId, dto);
+    return {
+      success: true,
+      message: 'Admin user created successfully',
+      data: { ...result }
+    }
   }
+
+  @Get('sub_admin/profile')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get sub-admin profile' })
+  @ApiResponse({ status: 200, description: 'Sub-admin profile data' })
+  async getSubAdminProfile(@GetUser('id') userId: string) {
+    const user = await this.authService.getSubAdminProfile(userId);
+    return { user };
+  };
+
+
+  @Patch('admin/user/permissions')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update admin user permissions (Only for super admins)' })
+  @ApiResponse({ status: 200, description: 'Admin user permissions updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input data' })
+  async updateAdminUserPermissions(@Body() dto: UpdatePermissionDto, @GetUser('id') userId: string) {
+    const result = await this.authService.updateAdminUserPermissions(userId, dto);
+    return {
+      success: true,
+      message: 'Admin user permissions updated successfully',
+      data: { ...result }
+    }
+  }
+
+
 }
