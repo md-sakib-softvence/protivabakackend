@@ -8,6 +8,7 @@ import {
   Req,
   Headers,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import {
   ApiTags,
