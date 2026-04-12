@@ -39,7 +39,7 @@ export class JobService {
         //     imageUrls = uploadResults.map((res: any) => res.secure_url);
         // }
 
-        const upload : any = await this.cloudinary.uploadImageFromBuffer(images.buffer, "jobs", `${Date.now()}-${images.originalname}`);
+        const upload: any = await this.cloudinary.uploadImageFromBuffer(images.buffer, "jobs", `${Date.now()}-${images.originalname}`);
 
         console.log(upload);
 
@@ -65,7 +65,7 @@ export class JobService {
     };
 
 
-    async getAllJobForUserHomePage(isPopuler: boolean, page: number, limit: number ) {
+    async getAllJobForUserHomePage(isPopuler: boolean, page: number, limit: number) {
         const skip = (page - 1) * limit;
 
         const whereCondition: any = {};
@@ -364,6 +364,28 @@ export class JobService {
         });
 
         return update;
+
+    }
+
+
+    async makePopuler(jobId: string, isPopuler: boolean) {
+
+        const job = await this.prisma.job.findUnique({
+            where: {
+                id: jobId
+            }
+        });
+
+        if (!job) throw new NotFoundException("Job not found");
+
+        await this.prisma.job.update({
+            where: {
+                id: jobId
+            },
+            data: {
+                isPopuler: isPopuler
+            }
+        })
 
     }
 
