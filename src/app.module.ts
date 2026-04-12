@@ -20,6 +20,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { LocationModule } from './modules/location/location.module';
 import { MessageModule } from './modules/message/message.module';
 import { CallModule } from './modules/call/call.module';
+import { ReviewModule } from './modules/review/review.module';
 
 @Module({
   imports: [
@@ -59,7 +60,8 @@ import { CallModule } from './modules/call/call.module';
     PaymentModule,
     LocationModule,
     MessageModule,
-    CallModule
+    CallModule,
+    ReviewModule
   ],
 
   controllers: [AppController],
