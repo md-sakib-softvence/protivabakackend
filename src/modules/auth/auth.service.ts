@@ -21,9 +21,9 @@ import {
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserRole, UserStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-
-import { IEnv } from 'src/config/env.config';
-import { EmailService } from 'src/common/email/email.service';
+import { AdminUserDto } from './dto/admin.user.dto';
+import { UpdatePermissionDto } from './dto/update.permission.dto';
+import { UpdateProfileDto } from './dto/update.profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -241,12 +241,176 @@ export class AuthService {
     return { message: 'Password changed successfully' };
   }
 
-  // ==================== LOGOUT ALL DEVICES ====================
-  async logoutAll(userId: string) {
-    await this.prisma.session.updateMany({
-      where: { userId, isActive: true },
-      data: { isActive: false },
-    });
+        return { rest };
+    }
+    async createAdminUser(userId: string, dto: AdminUserDto) {
+
+        const requestingUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!requestingUser || requestingUser.role !== UserRole.SUPER_ADMIN) {
+            throw new UnauthorizedException('Only super admins can create admin users');
+        }
+
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
+
+        if (existingUser) {
+            throw new ConflictException('Email already registered');
+        }
+
+        const isPhoneTaken = await this.prisma.user.findFirst({
+            where: { phone: dto.phone },
+        });
+
+        if (isPhoneTaken) {
+            throw new ConflictException('Phone number already registered');
+        }
+
+        const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+        const adminUser = await this.prisma.user.create({
+            data: {
+                email: dto.email,
+                phone: dto.phone,
+                password: hashedPassword,
+                firstName: dto.firstName,
+                lastName: dto.lastName,
+                role: UserRole.SUB_ADMIN,
+                status: UserStatus.ACTIVE,
+                emailVerified: true,
+                phoneVerified: true,
+                verificationStatus: "VERIFIED"
+            },
+        });
+
+        await this.prisma.adminPermission.create({
+            data: {
+                userId: adminUser.id,
+                isViewBooking: dto.isViewBooking,
+                isManageBooking: dto.isManageBooking,
+                isExportBooking: dto.isExportBooking,
+                isViewProvider: dto.isViewProvider,
+                isManageProvider: dto.isManageProvider,
+                isViewUser: dto.isViewUser,
+                isManageUser: dto.isManageUser,
+                isViewCategory: dto.isViewCategory,
+                isManageCategory: dto.isManageCategory,
+                isViewTransaction: dto.isViewTransaction,
+                isViewWithdrawal: dto.isViewWithdrawal,
+                isManageWithdrawal: dto.isManageWithdrawal,
+            },
+        });
+
+        await this.prisma.notification.create({
+            data: {
+                userId: adminUser.id,
+                title: 'Admin Account Created',
+                message: 'Your admin account has been created successfully. You can now log in with your credentials.',
+                type: 'ADMMIN_PERMISSION_GRANTED',
+            },
+        });
+
+
+        if (dto.isViewBooking || dto.isManageBooking || dto.isExportBooking) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: adminUser.id,
+                    title: 'Booking Permissions Granted',
+                    message: 'You have been granted permissions to view, manage, and export bookings.',
+                    type: 'ADMMIN_PERMISSION_GRANTED',
+                },
+            });
+        };
+
+
+        if (dto.isViewProvider || dto.isManageProvider) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: adminUser.id,
+                    title: 'Provider Permissions Granted',
+                    message: 'You have been granted permissions to view and manage providers.',
+                    type: 'ADMMIN_PERMISSION_GRANTED',
+                },
+            });
+        };
+
+        if (dto.isViewUser || dto.isManageUser) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: adminUser.id,
+                    title: 'User Permissions Granted',
+                    message: 'You have been granted permissions to view and manage users.',
+                    type: 'ADMMIN_PERMISSION_GRANTED',
+                },
+            });
+        };
+
+
+        if (dto.isViewCategory || dto.isManageCategory) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: adminUser.id,
+                    title: 'Category Permissions Granted',
+                    message: 'You have been granted permissions to view and manage categories.',
+                    type: 'ADMMIN_PERMISSION_GRANTED',
+                },
+            });
+        };
+
+
+        if (dto.isViewTransaction) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: adminUser.id,
+                    title: 'Transaction Permissions Granted',
+                    message: 'You have been granted permissions to view transactions.',
+                    type: 'ADMMIN_PERMISSION_GRANTED',
+                },
+            });
+        };
+
+
+
+        if (dto.isViewWithdrawal || dto.isManageWithdrawal) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: adminUser.id,
+                    title: 'Withdrawal Permissions Granted',
+                    message: 'You have been granted permissions to view and manage withdrawals.',
+                    type: 'ADMMIN_PERMISSION_GRANTED',
+                },
+            });
+        };
+
+        if (!dto.isViewBooking && !dto.isManageBooking && !dto.isExportBooking && !dto.isViewProvider && !dto.isManageProvider && !dto.isViewUser && !dto.isManageUser && !dto.isViewCategory && !dto.isManageCategory && !dto.isViewTransaction && !dto.isViewWithdrawal && !dto.isManageWithdrawal) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: adminUser.id,
+                    title: 'No Permissions Granted',
+                    message: 'You have been created as a sub-admin but no permissions have been granted yet. Please contact a super-admin to assign you permissions.',
+                    type: 'ADMMIN_PERMISSION_GRANTED',
+                },
+            });
+        }
+
+
+        return {
+            user: {
+                id: adminUser.id,
+                email: adminUser.email,
+                firstName: adminUser.firstName,
+                lastName: adminUser.lastName,
+                role: adminUser.role,
+                status: adminUser.status,
+                emailVerified: adminUser.emailVerified,
+                phoneVerified: adminUser.phoneVerified,
+                verificationStatus: adminUser.verificationStatus,
+            },
+        };
+    };
 
     return { message: 'Logged out from all devices successfully' };
   }
@@ -266,115 +430,250 @@ export class AuthService {
       const attempts = (user.loginAttempts || 0) + 1;
       const updateData: any = { loginAttempts: attempts };
 
-      if (attempts >= this.MAX_LOGIN_ATTEMPTS) {
-        updateData.lockedUntil = new Date(Date.now() + this.LOCK_DURATION_MINUTES * 60 * 1000);
-      }
+    async updateAdminUserPermissions(userId: string, dto: UpdatePermissionDto) {
+        const requestingUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                adminPermissions: true,
+                role: true,
+                id: true
+            }
+        });
+
+        if (!requestingUser) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        if (requestingUser.role !== UserRole.SUPER_ADMIN) {
+            throw new UnauthorizedException('You are not a super-admin. Only super-admins can update permissions');
+        };
+
+
+        if (requestingUser.id === dto.userId) {
+            throw new BadRequestException('You cannot update your own permissions');
+        };
+
+        //           ADMMIN_PERMISSION_REVOKED
+        //   USER_ADMIN_PERMISSION_REVOKED
+        //   BOOKING_PERMISSION_REVOKED
+        //   CATEGORY_PERMISSION_REVOKED
+        //   TRANSACTION_PERMISSION_REVOKED
+        //   PROVIDER_PERMISSION_REVOKED
+        //   WITHDRAWAL_PERMISSION_REVOKED
+
+
+
+        // Implementation for updating permissions would go here
+        const result = await this.prisma.adminPermission.update({
+            where: { userId: dto.userId },
+            data: {
+                isViewBooking: dto.isViewBooking,
+                isManageBooking: dto.isManageBooking,
+                isExportBooking: dto.isExportBooking,
+                isViewProvider: dto.isViewProvider,
+                isManageProvider: dto.isManageProvider,
+                isViewUser: dto.isViewUser,
+                isManageUser: dto.isManageUser,
+                isViewCategory: dto.isViewCategory,
+                isManageCategory: dto.isManageCategory,
+                isViewTransaction: dto.isViewTransaction,
+                isViewWithdrawal: dto.isViewWithdrawal,
+                isManageWithdrawal: dto.isManageWithdrawal,
+            },
+        });
+
+        if (requestingUser.adminPermissions?.isViewBooking && !dto.isViewBooking || requestingUser.adminPermissions?.isManageBooking && !dto.isManageBooking || requestingUser.adminPermissions?.isExportBooking && !dto.isExportBooking) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Booking Permissions Revoked',
+                    message: 'Your permissions to view, manage, and export bookings have been revoked.',
+                    type: 'BOOKING_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+
+        if (requestingUser.adminPermissions?.isViewProvider && !dto.isViewProvider || requestingUser.adminPermissions?.isManageProvider && !dto.isManageProvider) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Provider Permissions Revoked',
+                    message: 'Your permissions to view and manage providers have been revoked.',
+                    type: 'PROVIDER_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+        if (requestingUser.adminPermissions?.isViewUser && !dto.isViewUser || requestingUser.adminPermissions?.isManageUser && !dto.isManageUser) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'User Permissions Revoked',
+                    message: 'Your permissions to view and manage users have been revoked.',
+                    type: 'USER_ADMIN_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+        if (requestingUser.adminPermissions?.isViewCategory && !dto.isViewCategory || requestingUser.adminPermissions?.isManageCategory && !dto.isManageCategory) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Category Permissions Revoked',
+                    message: 'Your permissions to view and manage categories have been revoked.',
+                    type: 'CATEGORY_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+        if (requestingUser.adminPermissions?.isViewTransaction && !dto.isViewTransaction) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Transaction Permissions Revoked',
+                    message: 'Your permissions to view transactions have been revoked.',
+                    type: 'TRANSACTION_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+        if (requestingUser.adminPermissions?.isViewWithdrawal && !dto.isViewWithdrawal || requestingUser.adminPermissions?.isManageWithdrawal && !dto.isManageWithdrawal) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Withdrawal Permissions Revoked',
+                    message: 'Your permissions to view and manage withdrawals have been revoked.',
+                    type: 'WITHDRAWAL_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+        if (requestingUser.adminPermissions?.isViewBooking && !dto.isViewBooking || requestingUser.adminPermissions?.isManageBooking && !dto.isManageBooking || requestingUser.adminPermissions?.isExportBooking && !dto.isExportBooking) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Booking Permissions Updated',
+                    message: 'Your permissions to view, manage, and export bookings have been updated.',
+                    type: 'BOOKING_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+        if (requestingUser.adminPermissions?.isViewProvider && !dto.isViewProvider || requestingUser.adminPermissions?.isManageProvider && !dto.isManageProvider) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Provider Permissions Updated',
+                    message: 'Your permissions to view and manage providers have been updated.',
+                    type: 'PROVIDER_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+
+        if (requestingUser.adminPermissions?.isViewUser && !dto.isViewUser || requestingUser.adminPermissions?.isManageUser && !dto.isManageUser) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'User Permissions Updated',
+                    message: 'Your permissions to view and manage users have been updated.',
+                    type: 'USER_ADMIN_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+        if (requestingUser.adminPermissions?.isViewCategory && !dto.isViewCategory || requestingUser.adminPermissions?.isManageCategory && !dto.isManageCategory) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Category Permissions Updated',
+                    message: 'Your permissions to view and manage categories have been updated.',
+                    type: 'CATEGORY_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+        if (requestingUser.adminPermissions?.isViewTransaction && !dto.isViewTransaction) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Transaction Permissions Updated',
+                    message: 'Your permissions to view transactions have been updated.',
+                    type: 'TRANSACTION_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+        if (requestingUser.adminPermissions?.isViewWithdrawal && !dto.isViewWithdrawal || requestingUser.adminPermissions?.isManageWithdrawal && !dto.isManageWithdrawal) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'Withdrawal Permissions Updated',
+                    message: 'Your permissions to view and manage withdrawals have been updated.',
+                    type: 'WITHDRAWAL_PERMISSION_REVOKED',
+                },
+            });
+        };
+
+
+        if (requestingUser.adminPermissions?.isViewBooking && !dto.isViewBooking || requestingUser.adminPermissions?.isManageBooking && !dto.isManageBooking || requestingUser.adminPermissions?.isExportBooking && !dto.isExportBooking || requestingUser.adminPermissions?.isViewProvider && !dto.isViewProvider || requestingUser.adminPermissions?.isManageProvider && !dto.isManageProvider || requestingUser.adminPermissions?.isViewUser && !dto.isViewUser || requestingUser.adminPermissions?.isManageUser && !dto.isManageUser || requestingUser.adminPermissions?.isViewCategory && !dto.isViewCategory || requestingUser.adminPermissions?.isManageCategory && !dto.isManageCategory || requestingUser.adminPermissions?.isViewTransaction && !dto.isViewTransaction || requestingUser.adminPermissions?.isViewWithdrawal && !dto.isViewWithdrawal || requestingUser.adminPermissions?.isManageWithdrawal && !dto.isManageWithdrawal) {
+            await this.prisma.notification.create({
+                data: {
+                    userId: dto.userId,
+                    title: 'All Permissions Revoked',
+                    message: 'All your admin permissions have been revoked. Please contact a super-admin for more information.',
+                    type: 'ADMMIN_PERMISSION_REVOKED',
+                },
+            });
+        }
+
+        return { result };
 
       await this.prisma.user.update({ where: { id: user.id }, data: updateData });
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!user.emailVerified) throw new UnauthorizedException('Please verify your email first');
-    if (user.status === UserStatus.SUSPENDED) throw new UnauthorizedException('Account is suspended');
-    if (user.status === UserStatus.BANNED) throw new UnauthorizedException('Account is banned');
+    async updateUserProfile(userId: string, dto: UpdateProfileDto) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        loginAttempts: 0,
-        lockedUntil: null,
-        lastLogin: new Date(),
-        lastActive: new Date(),
-      },
-    });
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role!);
+        const allowedFields = ['firstName', 'lastName', 'email', 'phone', 'bio', 'streetAddress', 'city', 'state', 'zipCode'];
 
-    await this.createSession(user.id, deviceId, ipAddress, userAgent, tokens.refreshToken);
+        if (!allowedFields.includes(dto.fildName)) {
+            throw new BadRequestException('Invalid field name');
+        }
 
-    return {
-      message: 'Login successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        avatar: user.avatar,
-      },
-      ...tokens,
-    };
-  }
+        const data: any = {};
+        data[dto.fildName] = dto.value;
 
-  // ==================== REFRESH TOKEN & LOGOUT ====================
-  async refreshToken(refreshToken: string) {
-    const session = await this.prisma.session.findUnique({
-      where: { refreshToken },
-      include: { user: true },
-    });
+        const updatedUser = await this.prisma.user.update({
+            where: { id: userId },
+            data,
+        });
 
-    if (!session || !session.isActive) throw new UnauthorizedException('Invalid refresh token');
-    if (new Date() > session.expiresAt) throw new UnauthorizedException('Refresh token expired');
+        await this.prisma.notification.create({
+            data: {
+                userId,
+                title: 'Profile Updated',
+                message: `Your profile has been updated successfully. ${dto.fildName} is now ${dto.value}.`,
+                type: 'PROFILE_UPDATE',
+            },
+        });
 
-    const tokens = await this.generateTokens(session.user.id, session.user.email, session.user.role!);
+        const { password, otp, otpExpiry, refreshToken, ...rest } = updatedUser;
 
-    await this.prisma.session.update({
-      where: { id: session.id },
-      data: {
-        refreshToken: tokens.refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        lastUsedAt: new Date(),
-      },
-    });
+        return rest;
 
-    return tokens;
-  }
+    }
 
-  async logout(userId: string, deviceId: string) {
-    await this.prisma.session.updateMany({
-      where: { userId, deviceId, isActive: true },
-      data: { isActive: false },
-    });
-    return { message: 'Logged out successfully' };
-  }
+    async addNewProvider(){
+        
+    }
 
-  // ==================== HELPER METHODS ====================
-  private generateOTP(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  }
-
-  private async generateTokens(userId: string, email: string, role: UserRole) {
-    const env = this.configService.get<IEnv>('env')!;
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync({ sub: userId, email, role }),
-      this.jwtService.signAsync({ sub: userId, email, role }, { expiresIn: '7d' }),
-    ]);
-
-    return { accessToken, refreshToken };
-  }
-
-  private async createSession(
-    userId: string,
-    deviceId: string,
-    ipAddress: string,
-    userAgent: string,
-    refreshToken: string,
-  ) {
-    await this.prisma.session.updateMany({
-      where: { userId, deviceId },
-      data: { isActive: false },
-    });
-
-    return this.prisma.session.create({
-      data: {
-        userId,
-        deviceId,
-        ipAddress,
-        userAgent,
-        refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
-  }
 }
