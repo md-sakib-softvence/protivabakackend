@@ -5,5 +5,5 @@ export class AppleAuthDto {
   @ApiProperty({ description: 'Apple OAuth token' })
   @IsString()
   @IsNotEmpty()
-  token: string;
+  token!: string;
 }

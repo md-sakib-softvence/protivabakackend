@@ -111,6 +111,8 @@ function setupRateLimiting(app: any, configService: ConfigService, nodeEnv: stri
 // });
 
 
+
+
 function setupSecurity(app: any, configService: ConfigService, nodeEnv: string): void {
   app.use(helmet({ contentSecurityPolicy: nodeEnv === 'production' ? undefined : false }));
   app.enableCors({
@@ -294,6 +296,8 @@ export async function bootstrap() {
     defaultVersion: '1',
   });
 
+  app.useWebSocketAdapter(new IoAdapter(app));
+
   setupSecurity(app, configService, nodeEnv);
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
@@ -314,6 +318,7 @@ export async function bootstrap() {
   logger.log(`Docs: http://localhost:${port}/docs`);
   logger.log(`Health: http://localhost:${port}/api/v1/health`);
   logger.log(`Metrics: http://localhost:${port}/api/v1/metrics`);
+  logger.log(`WebSockets → ws://localhost:${port}/messaging`);
 
   const shutdown = async () => {
     server.close(() => process.exit(0));
