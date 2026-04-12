@@ -9,7 +9,7 @@ export class ExpartRecommendationController {
   constructor(private readonly expartRecommendationService: ExpartRecommendationService) { }
 
   @ApiBearerAuth()
-  @ApiProperty({ example: "Make Recomendation to Provider (Only Can Provider)" })
+  @ApiProperty({ example: "Make Recomendation to Provider (Only Can Admin)" })
   @UseGuards(JwtAuthGuard, SubAdminGuard)
   @Patch('expert-recommendation/:id')
   @ApiOperation({ summary: 'Make or remove expert recommendation' })
