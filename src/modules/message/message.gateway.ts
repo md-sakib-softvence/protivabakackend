@@ -6,81 +6,117 @@ import {
   OnGatewayDisconnect,
   MessageBody,
   ConnectedSocket,
+  WsException,
 } from '@nestjs/websockets';
 import { UseGuards, Logger } from '@nestjs/common';
-import { Server } from 'socket.io';
-import { Throttle } from '@nestjs/throttler';
-import * as jwtWsGuard from 'src/common/guards/jwt-ws.guard';
-import { RoomAccessGuard } from 'src/common/guards/room-access.guard';
+import { Server, Socket } from 'socket.io';
+import { ExtendedError } from 'socket.io';           // ← Added
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { MessageService } from './message.service';
+import { RoomAccessGuard } from 'src/common/guards/room-access.guard';
 import { DeleteMessageDto, MarkReadDto, SendMessageDto, TypingDto } from './dto/sent.message.dto';
 
+export interface AuthSocket extends Socket {
+  user: { id: string; email: string; role: string };
+}
+
 @WebSocketGateway({
-  namespace: '/messaging',
+  namespace: 'messaging',
   cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') ?? '*',
+    origin: '*',
     credentials: true,
   },
-  transports: ['websocket', 'polling'],
 })
 export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  private readonly server!: Server;
+  server!: Server;
 
   private readonly logger = new Logger(MessageGateway.name);
-
-  // userId → Set of socket ids (multi-device support)
   private readonly userSockets = new Map<string, Set<string>>();
 
   constructor(
     private readonly messageService: MessageService,
     private readonly roomAccessGuard: RoomAccessGuard,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
-  // ─── Connection Lifecycle ─────────────────────────────────────────────────
-  async handleConnection(client: jwtWsGuard.AuthenticatedSocket) {
-    try {
-      const userId = client.user?.id;
-      if (!userId) {
-        client.disconnect();
-        return;
-      }
+  // ─── Auth Middleware ─────────────────────────────────────────────────────
+  afterInit(server: Server) {
+    server.use((socket: Socket, next: (err?: ExtendedError) => void) => {
+      const authSocket = socket as AuthSocket;
 
-      // Track socket for multi-device support
-      if (!this.userSockets.has(userId)) {
-        this.userSockets.set(userId, new Set());
-      }
-      this.userSockets.get(userId)!.add(client.id);
+      // Run async logic inside middleware
+      (async () => {
+        try {
+          const token =
+            authSocket.handshake.auth?.token ||
+            (authSocket.handshake.headers?.authorization as string)?.replace('Bearer ', '');
 
-      // Auto-join user's personal room
-      client.join(`user:${userId}`);
+          if (!token) {
+            return next(new WsException('No token provided'));
+          }
 
-      this.logger.log(`Client connected: ${client.id} (user: ${userId})`);
-      client.emit('connected', { userId, socketId: client.id });
-    } catch (error) {
-      this.logger.error('Error during connection handling', error);
-      client.disconnect();
-    }
+          const payload = await this.jwtService.verifyAsync(token, {
+            secret: this.configService.get('env')?.JWT_SECRET,
+          });
+
+          const user = await this.prisma.user.findUnique({
+            where: { id: payload.sub },
+            select: { id: true, email: true, role: true, status: true },
+          });
+
+          if (!user || user.status !== 'ACTIVE') {
+            return next(new WsException('User inactive or not found'));
+          }
+
+          authSocket.user = { id: user.id, email: user.email, role: user.role };
+          next();
+        } catch (err: any) {
+          next(new WsException(`Invalid token: ${err.message || err}`));
+        }
+      })();
+    });
   }
 
-  handleDisconnect(client: jwtWsGuard.AuthenticatedSocket) {
+  // ─── Connection Handlers ─────────────────────────────────────────────────
+  async handleConnection(client: AuthSocket) {
+    const userId = client.user?.id;
+    if (!userId) {
+      client.disconnect();
+      return;
+    }
+
+    if (!this.userSockets.has(userId)) {
+      this.userSockets.set(userId, new Set());
+    }
+    this.userSockets.get(userId)!.add(client.id);
+
+    client.join(`user:${userId}`);
+
+    client.emit('connected', { userId, socketId: client.id });
+    this.logger.log(`[Messaging] Connected: ${client.id} (user: ${userId})`);
+  }
+
+  handleDisconnect(client: AuthSocket) {
     const userId = client.user?.id;
     if (userId) {
-      const sockets = this.userSockets.get(userId);
-      sockets?.delete(client.id);
-      if (sockets && sockets.size === 0) {
+      this.userSockets.get(userId)?.delete(client.id);
+      if (this.userSockets.get(userId)?.size === 0) {
         this.userSockets.delete(userId);
       }
     }
-    this.logger.log(`Client disconnected: ${client.id}`);
+    this.logger.log(`[Messaging] Disconnected: ${client.id}`);
   }
 
-  // ─── Room Join/Leave ──────────────────────────────────────────────────────
-  @UseGuards(jwtWsGuard.JwtWsGuard)
+  // ─── Room Events ─────────────────────────────────────────────────────────
   @SubscribeMessage('join:room')
   async joinRoom(
     @MessageBody() data: { bookingId: string },
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     try {
       await this.roomAccessGuard.verifyBookingAccess(data.bookingId, client.user.id);
@@ -90,55 +126,51 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
       client.join(`room:${roomId}`);
       client.join(`booking:${data.bookingId}`);
 
-      // Load recent message history
       const messages = await this.messageService.getMessages(client.user.id, {
         bookingId: data.bookingId,
         limit: 30,
       });
 
-      client.emit('room:joined', { 
-        roomId, 
-        bookingId: data.bookingId, 
-        messages 
+      const unreadCount = await this.prisma.message.count({
+        where: {
+          receiverId: client.user.id,
+          isRead: false,
+          isDeleted: false,
+          metadata: { path: ['bookingId'], equals: data.bookingId },
+        },
       });
-    } catch (error: any) {
-      this.logger.error(`Error in join:room for booking ${data.bookingId}`, error);
-      client.emit('error', { 
-        event: 'join:room',
-        message: error.message || 'Failed to join room' 
+
+      client.emit('room:joined', {
+        roomId,
+        bookingId: data.bookingId,
+        messages,
+        unreadCount,
       });
+    } catch (err: any) {
+      client.emit('error', { event: 'join:room', message: err.message || err });
     }
   }
 
-  @UseGuards(jwtWsGuard.JwtWsGuard)
   @SubscribeMessage('leave:room')
   async leaveRoom(
     @MessageBody() data: { bookingId: string },
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     try {
       const roomId = await this.messageService.getOrCreateRoom(data.bookingId);
-
       client.leave(`room:${roomId}`);
       client.leave(`booking:${data.bookingId}`);
-
       client.emit('room:left', { bookingId: data.bookingId });
-    } catch (error: any) {
-      this.logger.error(`Error in leave:room`, error);
-      client.emit('error', { 
-        event: 'leave:room',
-        message: error.message || 'Failed to leave room' 
-      });
+    } catch (err: any) {
+      client.emit('error', { event: 'leave:room', message: err.message || err });
     }
   }
 
-  // ─── Messaging ────────────────────────────────────────────────────────────
-  @UseGuards(jwtWsGuard.JwtWsGuard)
-  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  // ─── Message Events ──────────────────────────────────────────────────────
   @SubscribeMessage('message:send')
   async sendMessage(
     @MessageBody() dto: SendMessageDto,
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     try {
       await this.roomAccessGuard.verifyBookingAccess(dto.bookingId, client.user.id);
@@ -146,34 +178,27 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
       const message = await this.messageService.saveMessage(client.user.id, dto);
       const roomId = message.roomId!;
 
-      // Broadcast new message to everyone in the room
+      // Broadcast to room
       this.server.to(`room:${roomId}`).emit('message:new', message);
 
-      // Send notification to receiver (if they are connected)
+      // Notification to receiver
       this.server.to(`user:${dto.receiverId}`).emit('message:notification', {
         bookingId: dto.bookingId,
+        roomId,
         senderId: client.user.id,
-        preview: this.getMessagePreview(dto),
+        preview: this.getPreview(dto),
       });
 
-      return { 
-        event: 'message:sent', 
-        data: { messageId: message.id } 
-      };
-    } catch (error: any) {
-      this.logger.error(`Error in message:send`, error);
-      client.emit('error', { 
-        event: 'message:send',
-        message: error.message || 'Failed to send message' 
-      });
+      client.emit('message:sent', { messageId: message.id });
+    } catch (err: any) {
+      client.emit('error', { event: 'message:send', message: err.message || err });
     }
   }
 
-  @UseGuards(jwtWsGuard.JwtWsGuard)
   @SubscribeMessage('message:read')
   async markRead(
     @MessageBody() dto: MarkReadDto,
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     try {
       const result = await this.messageService.markMessagesAsRead(
@@ -184,7 +209,6 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
       const roomId = await this.messageService.getOrCreateRoom(dto.bookingId);
 
-      // Notify other participants about read receipts
       this.server.to(`room:${roomId}`).emit('message:read_receipt', {
         bookingId: dto.bookingId,
         readerId: client.user.id,
@@ -192,47 +216,37 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
         readAt: new Date(),
       });
 
-      return { event: 'message:read', data: result };
-    } catch (error: any) {
-      this.logger.error(`Error in message:read`, error);
-      client.emit('error', { 
-        event: 'message:read',
-        message: error.message || 'Failed to mark messages as read' 
-      });
+      client.emit('message:read_ack', result);
+    } catch (err: any) {
+      client.emit('error', { event: 'message:read', message: err.message || err });
     }
   }
 
-  @UseGuards(jwtWsGuard.JwtWsGuard)
   @SubscribeMessage('message:delete')
   async deleteMessage(
     @MessageBody() dto: DeleteMessageDto,
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     try {
       await this.messageService.deleteMessage(client.user.id, dto.messageId);
 
-      // Notify room that message was deleted
-      client.to(`room:${dto.bookingId}`).emit('message:deleted', { 
-        messageId: dto.messageId 
-      });
+      const roomId = await this.messageService.getOrCreateRoom(dto.bookingId);
 
-      client.emit('message:deleted', { messageId: dto.messageId });
-    } catch (error: any) {
-      this.logger.error(`Error in message:delete`, error);
-      client.emit('error', { 
-        event: 'message:delete',
-        message: error.message || 'Failed to delete message' 
+      this.server.to(`room:${roomId}`).emit('message:deleted', {
+        messageId: dto.messageId,
+        bookingId: dto.bookingId,
+        deletedAt: new Date(),
       });
+    } catch (err: any) {
+      client.emit('error', { event: 'message:delete', message: err.message || err });
     }
   }
 
-  // ─── Typing Indicator ─────────────────────────────────────────────────────
-  @UseGuards(jwtWsGuard.JwtWsGuard)
-  @Throttle({ default: { limit: 10, ttl: 5000 } })
+  // ─── Typing Events ───────────────────────────────────────────────────────
   @SubscribeMessage('typing:start')
   async typingStart(
     @MessageBody() dto: TypingDto,
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     const roomId = await this.messageService.getOrCreateRoom(dto.bookingId);
     this.server.to(`room:${roomId}`).emit('typing:update', {
@@ -242,11 +256,10 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
     });
   }
 
-  @UseGuards(jwtWsGuard.JwtWsGuard)
   @SubscribeMessage('typing:stop')
   async typingStop(
     @MessageBody() dto: TypingDto,
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     const roomId = await this.messageService.getOrCreateRoom(dto.bookingId);
     this.server.to(`room:${roomId}`).emit('typing:update', {
@@ -256,18 +269,15 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
     });
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-  private getMessagePreview(dto: SendMessageDto): string {
-    if (dto.messageType === 'AUDIO') return '🎤 Voice message';
-    if (dto.messageType === 'IMAGE') return '📷 Image';
-    if (dto.messageType === 'FILE') return `📎 ${dto.fileName ?? 'File'}`;
+  // ─── Helper ──────────────────────────────────────────────────────────────
+  private getPreview(dto: SendMessageDto): string {
+    if (dto.messageType === 'AUDIO') return 'Voice message';
+    if (dto.messageType === 'IMAGE') return 'Image';
+    if (dto.messageType === 'FILE') return dto.fileName ?? 'File';
     return dto.content?.slice(0, 80) ?? '';
   }
 
-  /**
-   * Public method to broadcast system messages from other services
-   */
-  broadcastToRoom(bookingId: string, event: string, data: any) {
+  broadcastToBooking(bookingId: string, event: string, data: any) {
     this.server.to(`booking:${bookingId}`).emit(event, data);
   }
 }

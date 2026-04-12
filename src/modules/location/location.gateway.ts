@@ -6,105 +6,140 @@ import {
   OnGatewayDisconnect,
   MessageBody,
   ConnectedSocket,
+  WsException,
 } from '@nestjs/websockets';
-import { UseGuards, Logger } from '@nestjs/common';
-import { Server } from 'socket.io';
-import { Throttle } from '@nestjs/throttler';
-import * as jwtWsGuard from 'src/common/guards/jwt-ws.guard';
-import { RoomAccessGuard } from 'src/common/guards/room-access.guard';
+import { Logger } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
+import { ExtendedError } from 'socket.io';                    // ← Added this
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { LocationService } from './location.service';
-import { GetCurrentLocationDto, UpdateLocationDto } from './dto/location.dto';
+import { RoomAccessGuard } from 'src/common/guards/room-access.guard';
+import { UpdateLocationDto, TrackingSessionDto } from './dto/location.dto';
+
+export interface AuthSocket extends Socket {
+  user: { id: string; email: string; role: string };
+}
 
 @WebSocketGateway({
-  namespace: '/tracking',
-  cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') ?? '*',
-    credentials: true,
-  },
-  transports: ['websocket', 'polling'],
+  namespace: 'tracking',
+  cors: { origin: '*', credentials: true },
 })
 export class LocationGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
-  private readonly server!: Server;
+  server!: Server;
 
   private readonly logger = new Logger(LocationGateway.name);
 
   constructor(
     private readonly locationService: LocationService,
     private readonly roomAccessGuard: RoomAccessGuard,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
-  handleConnection(client: jwtWsGuard.AuthenticatedSocket) {
+  // ─── Auth Middleware (Fixed) ─────────────────────────────────────────────
+  afterInit(server: Server) {
+    server.use((socket: Socket, next: (err?: ExtendedError) => void) => {
+      const authSocket = socket as AuthSocket;   // Safe cast
+
+      // Async logic inside IIFE
+      (async () => {
+        try {
+          const token =
+            authSocket.handshake.auth?.token ||
+            (authSocket.handshake.headers?.authorization as string)?.replace('Bearer ', '');
+
+          if (!token) {
+            return next(new WsException('No token provided'));
+          }
+
+          const payload = await this.jwtService.verifyAsync(token, {
+            secret: this.configService.get('env')?.JWT_SECRET,
+          });
+
+          const user = await this.prisma.user.findUnique({
+            where: { id: payload.sub },
+            select: { id: true, email: true, role: true, status: true },
+          });
+
+          if (!user || user.status !== 'ACTIVE') {
+            return next(new WsException('User inactive or not found'));
+          }
+
+          authSocket.user = { id: user.id, email: user.email, role: user.role };
+          next();
+        } catch (err: any) {
+          next(new WsException(`Invalid token: ${err.message || err}`));
+        }
+      })();
+    });
+  }
+
+  // ─── Connection Handlers ─────────────────────────────────────────────────
+  handleConnection(client: AuthSocket) {
     if (!client.user?.id) {
       client.disconnect();
       return;
     }
+
     client.join(`user:${client.user.id}`);
-    this.logger.log(`Tracking connected: ${client.id} (user: ${client.user.id})`);
+    client.emit('connected', { userId: client.user.id, socketId: client.id });
+    this.logger.log(`[Tracking] Connected: ${client.id} (user: ${client.user.id})`);
   }
 
-  handleDisconnect(client: jwtWsGuard.AuthenticatedSocket) {
-    this.logger.log(`Tracking disconnected: ${client.id}`);
+  handleDisconnect(client: AuthSocket) {
+    this.logger.log(`[Tracking] Disconnected: ${client.id}`);
   }
 
-  // ─── Join Tracking Session ────────────────────────────────────────────────
-  @UseGuards(jwtWsGuard.JwtWsGuard)
+  // ─── Tracking Events ─────────────────────────────────────────────────────
   @SubscribeMessage('tracking:join')
   async joinTracking(
     @MessageBody() data: { bookingId: string },
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     try {
       await this.roomAccessGuard.verifyBookingAccess(data.bookingId, client.user.id);
 
       client.join(`tracking:${data.bookingId}`);
 
-      // Send current positions immediately
       const state = await this.locationService.getCurrentLocations(
         data.bookingId,
         client.user.id,
       );
 
+      client.emit('tracking:joined', { bookingId: data.bookingId });
       client.emit('tracking:state', state);
-    } catch (error: any) {
-      this.logger.error(`Error in tracking:join for booking ${data.bookingId}`, error);
-      client.emit('error', { 
-        event: 'tracking:join',
-        message: error.message || 'Failed to join tracking session' 
-      });
+    } catch (err: any) {
+      client.emit('error', { event: 'tracking:join', message: err.message || err });
     }
   }
 
-  @UseGuards(jwtWsGuard.JwtWsGuard)
   @SubscribeMessage('tracking:leave')
   leaveTracking(
     @MessageBody() data: { bookingId: string },
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     client.leave(`tracking:${data.bookingId}`);
     client.emit('tracking:left', { bookingId: data.bookingId });
   }
 
-  // ─── Location Update ─────────────────────────────────────────────────────
-  @UseGuards(jwtWsGuard.JwtWsGuard)
-  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @SubscribeMessage('location:update')
   async updateLocation(
     @MessageBody() dto: UpdateLocationDto,
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @ConnectedSocket() client: AuthSocket,
   ) {
     try {
       await this.roomAccessGuard.verifyBookingAccess(dto.bookingId, client.user.id);
 
       const point = await this.locationService.updateLocation(client.user.id, dto);
-
-      // Get latest tracking state
       const state = await this.locationService.getCurrentLocations(
         dto.bookingId,
         client.user.id,
       );
 
-      // Broadcast to both participants
       this.server.to(`tracking:${dto.bookingId}`).emit('location:broadcast', {
         bookingId: dto.bookingId,
         updatedBy: client.user.id,
@@ -112,182 +147,25 @@ export class LocationGateway implements OnGatewayConnection, OnGatewayDisconnect
         state,
       });
 
-      return { 
-        event: 'location:updated', 
-        data: { timestamp: point.timestamp } 
-      };
-    } catch (error: any) {
-      this.logger.error(`Error in location:update for booking ${dto.bookingId}`, error);
-      client.emit('error', { 
-        event: 'location:update',
-        message: error.message || 'Failed to update location' 
-      });
+      client.emit('location:updated', { timestamp: point.timestamp });
+    } catch (err: any) {
+      client.emit('error', { event: 'location:update', message: err.message || err });
     }
   }
 
-  // ─── Get Current State ────────────────────────────────────────────────────
-  @UseGuards(jwtWsGuard.JwtWsGuard)
   @SubscribeMessage('location:current')
   async getCurrentLocation(
-    @MessageBody() dto: GetCurrentLocationDto,
-    @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
+    @MessageBody() data: { bookingId: string },
+    @ConnectedSocket() client: AuthSocket,
   ) {
     try {
       const state = await this.locationService.getCurrentLocations(
-        dto.bookingId,
+        data.bookingId,
         client.user.id,
       );
       client.emit('tracking:state', state);
-    } catch (error: any) {
-      this.logger.error(`Error in location:current for booking ${dto.bookingId}`, error);
-      client.emit('error', { 
-        event: 'location:current',
-        message: error.message || 'Failed to get current location' 
-      });
+    } catch (err: any) {
+      client.emit('error', { event: 'location:current', message: err.message || err });
     }
   }
 }
-
-
-// import {
-//   WebSocketGateway,
-//   WebSocketServer,
-//   SubscribeMessage,
-//   OnGatewayConnection,
-//   OnGatewayDisconnect,
-//   MessageBody,
-//   ConnectedSocket,
-// } from '@nestjs/websockets';
-// import { UseGuards, Logger } from '@nestjs/common';
-// import { Server } from 'socket.io';
-// import { Throttle } from '@nestjs/throttler';
-// import * as jwtWsGuard from 'src/common/guards/jwt-ws.guard';
-// import { RoomAccessGuard } from 'src/common/guards/room-access.guard';
-// import { LocationService } from './location.service';
-// import { GetCurrentLocationDto, UpdateLocationDto } from './dto/location.dto';
-
-
-// @WebSocketGateway({
-//   namespace: '/tracking',
-//   cors: {
-//     origin: process.env.ALLOWED_ORIGINS?.split(',') ?? '*',
-//     credentials: true,
-//   },
-//   transports: ['websocket', 'polling'],
-// })
-// export class LocationGateway implements OnGatewayConnection, OnGatewayDisconnect {
-//   @WebSocketServer()
-//   private readonly server!: Server;
-
-//   private readonly logger = new Logger(LocationGateway.name);
-
-//   constructor(
-//     private readonly locationService: LocationService,
-//     private readonly roomAccessGuard: RoomAccessGuard,
-//   ) {}
-
-//   handleConnection(client: jwtWsGuard.AuthenticatedSocket) {
-//     if (!client.user?.id) {
-//       client.disconnect();
-//       return;
-//     }
-//     client.join(`user:${client.user.id}`);
-//     this.logger.log(`Tracking connected: ${client.id} (user: ${client.user.id})`);
-//   }
-
-//   handleDisconnect(client: jwtWsGuard.AuthenticatedSocket) {
-//     this.logger.log(`Tracking disconnected: ${client.id}`);
-//   }
-
-//   // ─── Join Tracking Session ────────────────────────────────────────────────
-
-//   @UseGuards(jwtWsGuard.JwtWsGuard)
-//   @SubscribeMessage('tracking:join')
-//   async joinTracking(
-//     @MessageBody() data: { bookingId: string },
-//     @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
-//   ) {
-//     try {
-//       await this.roomAccessGuard.verifyBookingAccess(data.bookingId, client.user.id);
-
-//       client.join(`tracking:${data.bookingId}`);
-
-//       // Send current positions immediately
-//       const state = await this.locationService.getCurrentLocations(
-//         data.bookingId,
-//         client.user.id,
-//       );
-
-//       client.emit('tracking:state', state);
-//     } catch (err) {
-//       client.emit('error', { message: err.message });
-//     }
-//   }
-
-//   @UseGuards(jwtWsGuard.JwtWsGuard)
-//   @SubscribeMessage('tracking:leave')
-//   leaveTracking(
-//     @MessageBody() data: { bookingId: string },
-//     @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
-//   ) {
-//     client.leave(`tracking:${data.bookingId}`);
-//     client.emit('tracking:left', { bookingId: data.bookingId });
-//   }
-
-//   // ─── Location Update ─────────────────────────────────────────────────────
-
-//   /**
-//    * Client/Provider sends location update every ~2-5 seconds.
-//    * Throttled to 60 updates/minute (1/second max).
-//    */
-//   @UseGuards(jwtWsGuard.JwtWsGuard)
-//   @Throttle({ default: { limit: 60, ttl: 60000 } })
-//   @SubscribeMessage('location:update')
-//   async updateLocation(
-//     @MessageBody() dto: UpdateLocationDto,
-//     @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
-//   ) {
-//     try {
-//       await this.roomAccessGuard.verifyBookingAccess(dto.bookingId, client.user.id);
-
-//       const point = await this.locationService.updateLocation(client.user.id, dto);
-
-//       // Calculate tracking state and broadcast to the other participant
-//       const state = await this.locationService.getCurrentLocations(
-//         dto.bookingId,
-//         client.user.id,
-//       );
-
-//       // Broadcast to all participants in the tracking room
-//       this.server.to(`tracking:${dto.bookingId}`).emit('location:broadcast', {
-//         bookingId: dto.bookingId,
-//         updatedBy: client.user.id,
-//         point,
-//         state,
-//       });
-
-//       return { event: 'location:updated', data: { timestamp: point.timestamp } };
-//     } catch (err) {
-//       client.emit('error', { event: 'location:update', message: err.message });
-//     }
-//   }
-
-//   // ─── Get Current State ────────────────────────────────────────────────────
-
-//   @UseGuards(jwtWsGuard.JwtWsGuard)
-//   @SubscribeMessage('location:current')
-//   async getCurrentLocation(
-//     @MessageBody() dto: GetCurrentLocationDto,
-//     @ConnectedSocket() client: jwtWsGuard.AuthenticatedSocket,
-//   ) {
-//     try {
-//       const state = await this.locationService.getCurrentLocations(
-//         dto.bookingId,
-//         client.user.id,
-//       );
-//       client.emit('tracking:state', state);
-//     } catch (err) {
-//       client.emit('error', { message: err.message });
-//     }
-//   }
-// }
