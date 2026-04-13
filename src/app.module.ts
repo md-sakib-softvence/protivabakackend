@@ -23,6 +23,7 @@ import { CallModule } from './modules/call/call.module';
 import { ReviewModule } from './modules/review/review.module';
 import { ExpartRecommendationModule } from './modules/expart-recommendation/expart-recommendation.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { TransectionModule } from './modules/transection/transection.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     BookingModule,
     WithdrawModule,
     EmailModule,
+    TransectionModule,
     MarketingModule,
     PaymentModule,
     LocationModule,
