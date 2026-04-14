@@ -59,6 +59,7 @@ export class CategoryService {
             throw new NotFoundException('Category not found');
         }
 
+        
 
         let updatedSlug = category.slug;
         if (data.name && data.name !== category.name) {
@@ -103,7 +104,8 @@ export class CategoryService {
         };
 
         const total = await this.prisma.category.count({
-            where: whereCondition
+            where: whereCondition,
+            
         });
 
         const categories = await this.prisma.category.findMany({
@@ -134,18 +136,20 @@ export class CategoryService {
 
         if (!category) throw new NotFoundException("Category not found");
 
-        if(!category.isActive) throw new BadRequestException("This category is currently unavailable. Please choose another category.");
+        if (!category.isActive) throw new BadRequestException("This category is currently unavailable. Please choose another category.");
 
 
         const count = await this.prisma.subCategory.count({
             where: {
-                categoryId: categoryId
+                categoryId: categoryId,
+                isActive: true
             }
         })
 
         const result = await this.prisma.subCategory.findMany({
             where: {
                 categoryId: categoryId,
+                isActive: true
             },
             include: {
                 _count: {
@@ -174,13 +178,22 @@ export class CategoryService {
 
     async deleteCategory(categoryId: string) {
 
-        const result = await this.prisma.subCategory.delete({
+        const result = await this.prisma.category.findUnique({
             where: {
                 id: categoryId
             }
         });
 
         if (!result) throw new NotFoundException("Category not found");
+
+        await this.prisma.subCategory.update({
+            where: {
+                id: categoryId
+            },
+            data: {
+                isActive: false
+            }
+        });
 
         return null
 

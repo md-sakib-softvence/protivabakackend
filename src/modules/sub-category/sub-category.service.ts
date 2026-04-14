@@ -118,6 +118,9 @@ export class SubCategoryService {
         const total = await this.prisma.subCategory.count();
 
         const subCatgoris = await this.prisma.category.findMany({
+            where : {
+                isActive : true
+            },
             skip,
             take: limit,
             orderBy: {
@@ -138,13 +141,22 @@ export class SubCategoryService {
 
     async deleteSubCategory(categoryId: string) {
 
-        const result = await this.prisma.subCategory.delete({
+        const subCategory = await this.prisma.subCategory.findUnique({
             where: {
                 id: categoryId
             }
         });
 
-        if (!result) throw new NotFoundException("Sub-category not found");
+        if (!subCategory) throw new NotFoundException("Sub category not found");
+
+        await this.prisma.subCategory.update({
+            where: {
+                id: categoryId
+            },
+            data: {
+                isActive: false
+            }
+        });
 
         return null
 
@@ -165,11 +177,11 @@ export class SubCategoryService {
                 subCategoryId: subCategoryId
             },
             take: limit,
-            include : {
-                user : {
-                    select : {
-                        firstName : true,
-                        lastName : true
+            include: {
+                user: {
+                    select: {
+                        firstName: true,
+                        lastName: true
                     }
                 }
             },
