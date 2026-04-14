@@ -174,8 +174,9 @@ export class MessageGateway implements OnGatewayConnection, OnGatewayDisconnect 
   ) {
     try {
       await this.roomAccessGuard.verifyBookingAccess(dto.bookingId, client.user.id);
-
+      console.log("Hit save message service-1");
       const message = await this.messageService.saveMessage(client.user.id, dto);
+      console.log("Done save message");
       const roomId = message.roomId!;
 
       // Broadcast to room
