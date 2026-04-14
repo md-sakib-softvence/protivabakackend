@@ -76,8 +76,6 @@ export class PaymentService {
             },
         });
 
-        console.log(response);
-
         return {
             payment,
             gatewayUrl: response?.data?.GatewayPageURL,

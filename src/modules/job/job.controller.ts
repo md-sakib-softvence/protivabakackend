@@ -13,6 +13,7 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
   ParseBoolPipe,
+  Delete,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JobService } from './job.service';
@@ -200,7 +201,7 @@ export class JobController {
   }
 
   @Patch('make-populer/:id')
-  @ApiOperation({summary : "Make Populer Job (Only Can Admin)"})
+  @ApiOperation({ summary: "Make Populer Job (Only Can Admin)" })
   async makePopuler(
     @Param('id') jobId: string,
     @Body('isPopuler', ParseBoolPipe) isPopuler: boolean,
@@ -212,5 +213,22 @@ export class JobController {
       message: `Job ${isPopuler ? 'marked as popular' : 'removed from popular'}`,
     };
   }
+
+  @Delete(`delete-jon/:jobId`)
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async deleteJob(
+    @Param('jobId') jobId: string,
+    @GetUser('id') userId: string,
+  ) {
+    await this.jobService.deleteJob(userId, jobId);
+
+    return {
+      success: true,
+      message: "Job deleted success"
+    }
+
+  }
+
 
 }

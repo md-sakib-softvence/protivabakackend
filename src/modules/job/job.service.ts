@@ -387,6 +387,28 @@ export class JobService {
             }
         })
 
+    };
+
+
+    async deleteJob(userId: string, jobId: string) {
+        const job = await this.prisma.job.findUnique({
+            where: {
+                id: jobId
+            }
+        });
+
+        if (!job) throw new NotFoundException("Job not found");
+
+        if (userId !== job.userId) throw new NotFoundException("You are not job owner.");
+
+        await this.prisma.job.delete({
+            where: {
+                id: jobId
+            }
+        });
+
+        return true
+
     }
 
 }
