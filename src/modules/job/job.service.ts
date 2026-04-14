@@ -80,6 +80,14 @@ export class JobService {
             take: limit,
             orderBy: {
                 createdAt: "desc"
+            },
+            include: {
+                user: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
             }
         });
 
@@ -102,6 +110,14 @@ export class JobService {
         const result = await this.prisma.job.findUnique({
             where: {
                 id: jobId
+            },
+            include: {
+                user: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
             }
         });
 
