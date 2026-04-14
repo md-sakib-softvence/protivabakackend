@@ -165,6 +165,14 @@ export class SubCategoryService {
                 subCategoryId: subCategoryId
             },
             take: limit,
+            include : {
+                user : {
+                    select : {
+                        firstName : true,
+                        lastName : true
+                    }
+                }
+            },
             skip: skip
         });
 

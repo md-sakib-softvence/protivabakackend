@@ -90,6 +90,7 @@ export class JobService {
                 }
             }
         });
+        //cmntym2og00031wbgt2z0knsz cmntylmxe00021wbgftf9afuf cmntylmxe00021wbgftf9afuf cmntym2og00031wbgt2z0knsz
 
         const total = await this.prisma.job.count({
             where: whereCondition,

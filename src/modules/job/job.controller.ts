@@ -31,7 +31,7 @@ export class JobController {
   @Post("create-job")
   @ApiBearerAuth()
   @ApiOperation({ summary: "Create Job Only Can Do (Provider)" })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ProviderGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

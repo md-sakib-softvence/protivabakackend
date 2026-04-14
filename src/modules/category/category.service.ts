@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create.category.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateCategoryDto } from './dto/update.category.dto';
@@ -96,16 +96,22 @@ export class CategoryService {
     }
 
     async ClientHomeCategory(page = 1, limit = 15) {
-        console.log("S-1");
         const skip = (page - 1) * limit;
 
-        const total = await this.prisma.category.count();
-        console.log("S-2")
+        const whereCondition = {
+            isActive: true
+        };
+
+        const total = await this.prisma.category.count({
+            where: whereCondition
+        });
+
         const categories = await this.prisma.category.findMany({
+            where: whereCondition,
             skip,
             take: limit
         });
-        console.log("S-3")
+
         return {
             page,
             limit,
@@ -119,6 +125,17 @@ export class CategoryService {
     async getAllSubCategoryByCategoryId(categoryId: string, page = 1, limit = 15) {
 
         const skip = (page - 1) * limit;
+
+        const category = await this.prisma.category.findUnique({
+            where: {
+                id: categoryId
+            }
+        });
+
+        if (!category) throw new NotFoundException("Category not found");
+
+        if(!category.isActive) throw new BadRequestException("This category is currently unavailable. Please choose another category.");
+
 
         const count = await this.prisma.subCategory.count({
             where: {

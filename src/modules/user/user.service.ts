@@ -34,6 +34,9 @@ export class UserService {
 
         const filter: any = {
             role: "PROVIDER",
+            status: {
+                notIn: ["DELETED"]
+            }
         };
 
         if (status) {
