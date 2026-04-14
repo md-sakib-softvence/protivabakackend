@@ -38,6 +38,8 @@ export class ExpartRecommendationService {
             take: limit,
             select: {
                 firstName: true,
+                id : true,
+                avatar : true,
                 lastName: true,
                 streetAddress: true,
                 city: true,
