@@ -76,9 +76,11 @@ export class PaymentService {
             },
         });
 
+        console.log(response);
+
         return {
             payment,
-            gatewayUrl: response.data.GatewayPageURL,
+            gatewayUrl: response?.data?.GatewayPageURL,
         };
     };
 
