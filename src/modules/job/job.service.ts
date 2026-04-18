@@ -19,6 +19,13 @@ export class JobService {
 
 
     async createJob(data: CreateJobDto, userId: string, images: Express.Multer.File) {
+
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+        if (!user) throw new NotFoundException("User not valid");
+
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
         const isExistService = await this.prisma.job.findFirst({
             where: {
                 userId,
@@ -336,6 +343,8 @@ export class JobService {
             throw new BadRequestException("You are not permited access this route.");
         };
 
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
         const update = await this.prisma.job.update({
             where: {
                 id: jobId
@@ -359,6 +368,9 @@ export class JobService {
         });
 
         if (!user) throw new NotFoundException("User not found");
+
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
 
         const job = await this.prisma.job.findUnique({
             where: {

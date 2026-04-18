@@ -28,6 +28,8 @@ import { EmailService } from 'src/common/email/email.service';
 import { UpdatePermissionDto } from './dto/update.permission.dto';
 import { AdminUserDto } from './dto/admin.user.dto';
 import { UpdateProfileDto } from './dto/update.profile.dto';
+import { AddNewProviderDto } from './dto/add.new.provider.dto';
+import { CloudinaryUploadService } from '../../cloudinary/cloudinary.upload.service';
 
 @Injectable()
 export class AuthService {
@@ -42,7 +44,7 @@ export class AuthService {
         private readonly emailService: EmailService,
         @Inject('FIREBASE_MESSAGING')
         private readonly messaging: admin.messaging.Messaging,
-
+        private readonly cloudinary: CloudinaryUploadService,
     ) { }
 
     // ==================== REGISTER ====================
@@ -689,6 +691,43 @@ export class AuthService {
 
         return rest
 
+    }
+
+    async addNewProvider(avater: Express.Multer.File, nidImage: Express.Multer.File, data: AddNewProviderDto) {
+        const checkEmail = await this.prisma.user.findUnique({ where: { email: data.email } });
+
+        if (checkEmail) throw new BadRequestException("Already use this email");
+
+        const checkPhone = await this.prisma.user.findUnique({ where: { phone: data.phone } });
+
+        if (checkPhone) throw new BadRequestException("Already use this phone number");
+
+        const avaterUp: any = await this.cloudinary.uploadImageFromBuffer(avater.buffer, "avater", `${Date.now()}-${avater.originalname}`);
+        const nidImageUp: any = await this.cloudinary.uploadImageFromBuffer(nidImage.buffer, "nidImage", `${Date.now()}-${nidImage.originalname}`);
+
+        const hashedPassword = await bcrypt.hash(data.password, 10);
+
+        const result = await this.prisma.user.create({
+            data: {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                phone: data.phone,
+                password: hashedPassword,
+                city: data.city,
+                nidNumber: data.nidNumber,
+                nidImage: nidImageUp.secure_url,
+                avatar: avaterUp.secure_url,
+                streetAddress: data.serviceLocation,
+                yearsOfExprience: data.yearOfExprience,
+                bio: data.bio,
+                status: "ACTIVE",
+                emailVerified: true,
+                phoneVerified: true
+            }
+        });
+
+        return result;
     }
 
 }

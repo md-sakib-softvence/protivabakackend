@@ -35,7 +35,7 @@ export class UserService {
         const filter: any = {
             role: "PROVIDER",
             status: {
-                notIn: ["DELETED"]
+                not: "DELETED"
             }
         };
 
@@ -155,8 +155,13 @@ export class UserService {
 
         const filter: any = {};
         filter.role = "CLIENT";
+
         if (status) {
-            filter.status = status
+            filter.status = status;
+        } else {
+            filter.status = {
+                not: "DELETED"
+            };
         }
 
         if (search) {
@@ -283,9 +288,17 @@ export class UserService {
             role: "SUB_ADMIN",
         };
 
-        // ✅ status filter
+        // // ✅ status filter
+        // if (status) {
+        //     whereCondition.status = status;
+        // }
+
         if (status) {
             whereCondition.status = status;
+        } else {
+            whereCondition.status = {
+                not: "DELETED"
+            };
         }
 
         // ✅ search filter (⚠️ only existing fields ব্যবহার করো)

@@ -9,12 +9,17 @@ import {
   Headers,
   UseGuards,
   Patch,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiProperty,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 
@@ -34,6 +39,8 @@ import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { AdminUserDto } from './dto/admin.user.dto';
 import { UpdatePermissionDto } from './dto/update.permission.dto';
 import { UpdateProfileDto } from './dto/update.profile.dto';
+import { AddNewProviderDto } from './dto/add.new.provider.dto';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -219,5 +226,72 @@ export class AuthController {
     }
   }
 
+  @Post("register-provider")
+  @ApiOperation({ summary: "Provider registration" })
+  async registerProvider(@Body() data: AddNewProviderDto) {
+    return data;
+  }
+
+
+  @Post('add-provider')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'avatar', maxCount: 1 },
+      { name: 'nidImage', maxCount: 1 },
+    ]),
+  )
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        firstName: { type: 'string', example: 'Jihad' },
+        lastName: { type: 'string', example: 'Hasan' },
+        email: { type: 'string', example: 'jihad@gmail.com' },
+        phone: { type: 'string', example: '01712345678' },
+        password: { type: 'string', example: 'StrongPass123' },
+        city: { type: 'string', example: 'Dhaka' },
+        nidNumber: { type: 'string', example: '1234567890' },
+        serviceLocation: { type: 'string', example: 'Dhaka City' },
+        yearOfExprience: { type: 'string', example: '3 years' },
+        bio: { type: 'string', example: 'Professional cleaner' },
+        avatar: {
+          type: 'string',
+          format: 'binary',
+        },
+        nidImage: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      required: [
+        'firstName',
+        'lastName',
+        'email',
+        'phone',
+        'password',
+        'city',
+        'nidNumber',
+        'serviceLocation',
+        'yearOfExprience',
+        'bio',
+        'avatar',
+        'nidImage',
+      ],
+    },
+  })
+  async addNewProvider(
+    @UploadedFiles()
+    files: {
+      avatar?: Express.Multer.File;
+      nidImage?: Express.Multer.File;
+    },
+    @Body() data: AddNewProviderDto,
+  ) {
+    const avatar = files.avatar?.[0];
+    const nidImage = files.nidImage?.[0];
+
+    return this.authService.addNewProvider(avatar, nidImage, data);
+  }
 
 }

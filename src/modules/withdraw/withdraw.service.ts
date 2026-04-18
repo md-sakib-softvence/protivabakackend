@@ -264,6 +264,17 @@ export class WithdrawService {
     }
 
     async makeCardWithdrawRequest(userId: string, data: MakeWithdrawRequestCardPaymentDto) {
+
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
         const wallet = await this.prisma.wallet.findUnique({
             where: {
                 userId: userId
@@ -297,6 +308,17 @@ export class WithdrawService {
 
 
     async makeIBankingWithdrawRequest(userId: string, data: MakeWithdrawRequestMobileBankingDto) {
+
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
         const wallet = await this.prisma.wallet.findUnique({
             where: {
                 userId: userId

@@ -188,6 +188,16 @@ export class BookingService {
             }
         });
 
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: data.providerId
+            }
+        });
+
+        if (!user) throw new NotFoundException("Provider not found");
+
+        if (!user.providerServiceAvailability) throw new NotFoundException("Provider account is currently unavailable due to administrative restrictions. Please try another time.");
+
         await this.prisma.notification.create({
             data: {
                 userId: data.providerId,
@@ -295,7 +305,6 @@ export class BookingService {
             data: result
         }
     };
-
 
     async userTotalBooking(userId: string) {
         const totalBooking = await this.prisma.booking.count({

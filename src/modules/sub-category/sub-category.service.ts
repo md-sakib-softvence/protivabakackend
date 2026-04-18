@@ -118,8 +118,9 @@ export class SubCategoryService {
         const total = await this.prisma.subCategory.count();
 
         const subCatgoris = await this.prisma.category.findMany({
-            where : {
-                isActive : true
+            where: {
+                isActive: true,
+                isDelete : false
             },
             skip,
             take: limit,
@@ -154,7 +155,7 @@ export class SubCategoryService {
                 id: categoryId
             },
             data: {
-                isActive: false
+                isDelete: true
             }
         });
 
@@ -168,13 +169,15 @@ export class SubCategoryService {
 
         const totalService = await this.prisma.job.count({
             where: {
-                subCategoryId: subCategoryId
+                subCategoryId: subCategoryId,
+                isDelete : false
             }
         })
 
         const service = await this.prisma.job.findMany({
             where: {
-                subCategoryId: subCategoryId
+                subCategoryId: subCategoryId,
+                isDelete : false
             },
             take: limit,
             include: {

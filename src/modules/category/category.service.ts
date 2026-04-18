@@ -59,7 +59,7 @@ export class CategoryService {
             throw new NotFoundException('Category not found');
         }
 
-        
+
 
         let updatedSlug = category.slug;
         if (data.name && data.name !== category.name) {
@@ -100,12 +100,13 @@ export class CategoryService {
         const skip = (page - 1) * limit;
 
         const whereCondition = {
-            isActive: true
+            isActive: true,
+            isDelete: false
         };
 
         const total = await this.prisma.category.count({
             where: whereCondition,
-            
+
         });
 
         const categories = await this.prisma.category.findMany({
@@ -142,7 +143,8 @@ export class CategoryService {
         const count = await this.prisma.subCategory.count({
             where: {
                 categoryId: categoryId,
-                isActive: true
+                isActive: true,
+                isDelete: false
             }
         })
 
@@ -191,7 +193,7 @@ export class CategoryService {
                 id: categoryId
             },
             data: {
-                isActive: false
+                isDelete: true
             }
         });
 
