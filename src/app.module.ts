@@ -25,6 +25,7 @@ import { ExpartRecommendationModule } from './modules/expart-recommendation/expa
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { TransectionModule } from './modules/transection/transection.module';
 import { FirebaseModule } from './modules/pushNotification/firebase.push.notification';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -69,7 +70,8 @@ import { FirebaseModule } from './modules/pushNotification/firebase.push.notific
     ReviewModule,
     AnalyticsModule,
     ExpartRecommendationModule,
-    FirebaseModule
+    FirebaseModule,
+    NotificationModule
   ],
 
   controllers: [AppController],
