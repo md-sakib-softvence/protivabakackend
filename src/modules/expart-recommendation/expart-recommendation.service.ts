@@ -1,9 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class ExpartRecommendationService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService, @Inject('FIREBASE_MESSAGING')
+    private readonly messaging: admin.messaging.Messaging,
+    ) { }
 
     async makeExpartCommendation(userId: string, isRecmmendation: boolean) {
         const provider = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -38,8 +41,8 @@ export class ExpartRecommendationService {
             take: limit,
             select: {
                 firstName: true,
-                id : true,
-                avatar : true,
+                id: true,
+                avatar: true,
                 lastName: true,
                 streetAddress: true,
                 city: true,

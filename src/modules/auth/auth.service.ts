@@ -4,11 +4,12 @@ import {
     BadRequestException,
     ConflictException,
     NotFoundException,
+    Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-
+import * as admin from 'firebase-admin';
 import {
     RegisterDto,
     LoginDto,
@@ -39,6 +40,9 @@ export class AuthService {
         private readonly configService: ConfigService,
         private readonly prisma: PrismaService,
         private readonly emailService: EmailService,
+        @Inject('FIREBASE_MESSAGING')
+        private readonly messaging: admin.messaging.Messaging,
+
     ) { }
 
     // ==================== REGISTER ====================
@@ -287,9 +291,18 @@ export class AuthService {
                 loginAttempts: 0,
                 lockedUntil: null,
                 lastLogin: new Date(),
-                lastActive: new Date(),
+                lastActive: new Date()
             },
         });
+
+        if (deviceId) {
+            await this.prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    fcmToken: deviceId
+                }
+            })
+        };
 
         const tokens = await this.generateTokens(user.id, user.email, user.role!);
 
@@ -630,7 +643,6 @@ export class AuthService {
 
     };
 
-
     async updateUserProfile(userId: string, dto: UpdateProfileDto) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -669,5 +681,14 @@ export class AuthService {
 
     }
 
+    async getMe(userId: string) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new NotFoundException("User not found");
+
+        const { password, otp, otpExpiry, refreshToken, ...rest } = user;
+
+        return rest
+
+    }
 
 }

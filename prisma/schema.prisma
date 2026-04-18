@@ -31,6 +31,7 @@ model User {
   googleId                    String?            @unique
   appleId                     String?            @unique
   otp                         String?
+  fcmToken                    String?
   isProviderRecomendation     Boolean            @default(false)
   otpExpiry                   DateTime?
   otpAttempts                 Int                @default(0)

@@ -231,4 +231,12 @@ export class JobController {
   }
 
 
+  @Get('home-search')
+  @ApiQuery({ name: "search" })
+  async homeSearch(@Query("search") search: string) {
+    const result = await this.jobService.HomeSearch(search);
+
+    return result
+
+  }
 }

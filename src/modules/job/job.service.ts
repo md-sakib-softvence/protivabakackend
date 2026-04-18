@@ -1,16 +1,19 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateJobDto } from './dto/create.job.dto';
 import { ERROR_MESSAGES } from 'src/common/constants';
 import { CloudinaryUploadService } from 'src/cloudinary/cloudinary.upload.service';
 import slugify from 'slugify';
 import { UpdateJobDto, UpdateJobDtoPro } from './dto/update.job.dto';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class JobService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly cloudinary: CloudinaryUploadService,
+        @Inject('FIREBASE_MESSAGING')
+        private readonly messaging: admin.messaging.Messaging,
     ) { }
 
 
@@ -426,6 +429,22 @@ export class JobService {
 
         return true
 
+    }
+
+    async HomeSearch(search: string) {
+        const result = await this.prisma.$queryRawUnsafe(
+            `SELECT * FROM "jobs"
+     WHERE "deletedAt" IS NULL
+     AND (
+       title ILIKE $1
+       OR description ILIKE $1
+     )
+     ORDER BY "createdAt" DESC
+     LIMIT 10`,
+            `%${search}%`
+        );
+
+        return result;
     }
 
 }

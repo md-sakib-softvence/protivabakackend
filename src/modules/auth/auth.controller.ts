@@ -156,7 +156,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user' })
   @ApiResponse({ status: 200, description: 'Current user data' })
   async getMe(@GetUser() user: any) {
-    return { user };
+    const result = await this.authService.getMe(user.id);
+    return result;
+
   }
 
 
