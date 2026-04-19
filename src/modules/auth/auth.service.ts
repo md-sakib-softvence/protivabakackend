@@ -705,8 +705,6 @@ export class AuthService {
             throw new UnauthorizedException('User not found');
         };
 
-        const phone = await this.prisma.user.findUnique({ where: { phone: data.phone } })
-
         const allowedFields = ['firstName', 'lastName', 'email', 'phone', 'bio', 'streetAddress', 'city', 'state', 'zipCode'];
 
         if (!allowedFields.includes(dto.fildName)) {
