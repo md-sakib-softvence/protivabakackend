@@ -683,6 +683,29 @@ export class AuthService {
 
     }
 
+
+    async updateUserProfilePicture(userId: string, avater: Express.Multer.File) {
+
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+        if (!user) throw new NotFoundException("User not valid");
+
+        const avaterUp: any = await this.cloudinary.uploadImageFromBuffer(avater.buffer, "avater", `${Date.now()}-${avater.originalname}`);
+
+
+       const upProfile = await this.prisma.user.update({
+            where: {
+                id: userId
+            },
+            data: {
+                avatar: avaterUp?.secure_url
+            }
+        });
+
+        return upProfile?.avatar
+
+    }
+
     async getMe(userId: string) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new NotFoundException("User not found");

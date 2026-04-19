@@ -11,6 +11,7 @@ import {
   Patch,
   UploadedFiles,
   UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -40,7 +41,7 @@ import { AdminUserDto } from './dto/admin.user.dto';
 import { UpdatePermissionDto } from './dto/update.permission.dto';
 import { UpdateProfileDto } from './dto/update.profile.dto';
 import { AddNewProviderDto } from './dto/add.new.provider.dto';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -183,6 +184,20 @@ export class AuthController {
       data: { ...result }
     }
   };
+
+
+  @Patch("updateUserProfile")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Update User own profile picture" })
+  @ApiConsumes("multipart/form-data")
+  @UseInterceptors(FileInterceptor("avatar"))
+  async updateUserOwnProfilePicture(
+    @GetUser("id") userId: string,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    return await this.authService.updateUserProfilePicture(userId, file);
+  }
 
 
   @Post('admin/user/create')
