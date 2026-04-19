@@ -308,6 +308,21 @@ export class AuthService {
 
         const tokens = await this.generateTokens(user.id, user.email, user.role!);
 
+        // 👇 এখানে notification
+        if (user.fcmToken) {
+            await this.messaging.send({
+                token: user.fcmToken,
+                notification: {
+                    title: "Login Successful 🔐",
+                    body: `Welcome back ${user.firstName || 'User'}!`,
+                },
+                data: {
+                    type: "LOGIN",
+                    userId: user.id,
+                },
+            });
+        }
+
         await this.createSession(user.id, deviceId, ipAddress, userAgent, tokens.refreshToken);
 
         return {
@@ -693,7 +708,7 @@ export class AuthService {
         const avaterUp: any = await this.cloudinary.uploadImageFromBuffer(avater.buffer, "avater", `${Date.now()}-${avater.originalname}`);
 
 
-       const upProfile = await this.prisma.user.update({
+        const upProfile = await this.prisma.user.update({
             where: {
                 id: userId
             },
