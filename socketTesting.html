@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket.IO Messaging Tester</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    pre { background: #222; color: #0f0; padding: 15px; height: 400px; overflow-y: auto; }
+    button { margin: 5px; }
+  </style>
+</head>
+<body>
+  <h1>🔌 Messaging Gateway Tester</h1>
+  <div>
+    <strong>Your Token:</strong><br>
+    <input id="token" style="width:600px" placeholder="Paste JWT token here">
+  </div>
+  <div>
+    <strong>Booking ID:</strong><br>
+    <input id="bookingId" style="width:300px" value="YOUR_BOOKING_ID_HERE">
+    <button onclick="joinRoom()">Join Room</button>
+    <button onclick="leaveRoom()">Leave Room</button>
+  </div>
+  <div>
+    <strong>Receiver ID:</strong><br>
+    <input id="receiverId" style="width:300px" placeholder="Other user's ID">
+  </div>
+  <div>
+    <strong>Message:</strong><br>
+    <input id="content" style="width:400px" value="Hello! This is a test message">
+    <button onclick="sendMessage()">Send Message</button>
+  </div>
+  <div>
+    <button onclick="startTyping()">Start Typing</button>
+    <button onclick="stopTyping()">Stop Typing</button>
+    <button onclick="markAsRead()">Mark All as Read</button>
+  </div>
+
+  <hr>
+  <pre id="log"></pre>
+
+  <script>
+    let socket;
+
+    function log(msg) {
+      const el = document.getElementById('log');
+      el.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function connect() {
+      const token = document.getElementById('token').value.trim();
+      if (!token) return alert('Paste your JWT token!');
+
+      socket = io('http://localhost:3000/messaging', {
+        auth: { token },
+        transports: ['websocket'],
+        reconnection: true
+      });
+
+      socket.on('connect', () => log('✅ Connected | Socket ID: ' + socket.id));
+      socket.on('connected', d => log('Server: connected → ' + JSON.stringify(d)));
+      socket.on('room:joined', d => log('✅ Room joined: ' + JSON.stringify(d)));
+      socket.on('message:new', m => log('📨 New Message: ' + JSON.stringify(m)));
+      socket.on('message:notification', n => log('🔔 Notification: ' + JSON.stringify(n)));
+      socket.on('typing:update', t => log('⌨️ Typing: ' + JSON.stringify(t)));
+      socket.on('message:read_receipt', r => log('👁️ Read receipt: ' + JSON.stringify(r)));
+      socket.on('message:deleted', d => log('🗑️ Message deleted: ' + JSON.stringify(d)));
+      socket.on('error', e => log('❌ ERROR: ' + JSON.stringify(e)));
+      socket.on('disconnect', () => log('❌ Disconnected'));
+    }
+
+    function disconnect() { if (socket) socket.disconnect(); }
+
+    function joinRoom() {
+      const bookingId = document.getElementById('bookingId').value;
+      socket.emit('join:room', { bookingId });
+      log(`Emitted → join:room with bookingId = ${bookingId}`);
+    }
+
+    function leaveRoom() {
+      const bookingId = document.getElementById('bookingId').value;
+      socket.emit('leave:room', { bookingId });
+      log(`Emitted → leave:room with bookingId = ${bookingId}`);
+    }
+
+    function sendMessage() {
+      const bookingId = document.getElementById('bookingId').value;
+      const receiverId = document.getElementById('receiverId').value;
+      const content = document.getElementById('content').value;
+
+      socket.emit('message:send', {
+        bookingId,
+        receiverId,
+        content,
+        messageType: 'TEXT'
+      });
+      log(`Sent message to ${receiverId}`);
+    }
+
+    function startTyping() {
+      const bookingId = document.getElementById('bookingId').value;
+      socket.emit('typing:start', { bookingId });
+    }
+
+    function stopTyping() {
+      const bookingId = document.getElementById('bookingId').value;
+      socket.emit('typing:stop', { bookingId });
+    }
+
+    function markAsRead() {
+      const bookingId = document.getElementById('bookingId').value;
+      socket.emit('message:read', { bookingId });
+      log('Emitted → message:read (all unread)');
+    }
+
+    // Auto-connect when page loads (optional)
+    window.onload = () => log('Page loaded. Paste token and click Connect');
+  </script>
+</body>
+</html>
