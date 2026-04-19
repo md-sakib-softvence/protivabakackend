@@ -192,6 +192,17 @@ export class AuthController {
   @ApiOperation({ summary: "Update User own profile picture" })
   @ApiConsumes("multipart/form-data")
   @UseInterceptors(FileInterceptor("avatar"))
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        avatar: {
+          type: "string",
+          format: "binary",
+        },
+      },
+    },
+  })
   async updateUserOwnProfilePicture(
     @GetUser("id") userId: string,
     @UploadedFile() file: Express.Multer.File
