@@ -6,17 +6,17 @@ export class CreteBookingDto {
     @IsString()
     @IsNotEmpty()
     @ApiProperty({ example: "123" })
-    providerId: string;
+    providerId!: string;
 
     @IsString()
     @IsNotEmpty()
     @ApiProperty({ example: "123" })
-    jobId: string;
+    jobId!: string;
 
     @IsString()
     @IsNotEmpty()
     @ApiProperty({ example: "Car Service" })
-    serviceName: string;
+    serviceName!: string;
 
 
     @ApiProperty({
@@ -30,7 +30,7 @@ export class CreteBookingDto {
     @IsString()
     @IsNotEmpty()
     @ApiProperty({ example: "10 AM" })
-    preferredTime: string;
+    preferredTime!: string;
 
 
     @ApiProperty({
@@ -38,7 +38,7 @@ export class CreteBookingDto {
         example: ServiceLocation.CUSTOMER_LOCATION
     })
     @IsEnum(ServiceLocation)
-    serviceLocation: ServiceLocation;
+    serviceLocation!: ServiceLocation;
 
 
     @ApiProperty({
@@ -46,7 +46,7 @@ export class CreteBookingDto {
         description: "Location latitude"
     })
     @IsNumber()
-    locationLatitude: number;
+    locationLatitude!: number;
 
 
     @ApiProperty({
@@ -54,34 +54,34 @@ export class CreteBookingDto {
         description: "Location longitude"
     })
     @IsNumber()
-    locationLongitude: number;
+    locationLongitude!: number;
 
 
     @ApiProperty({
         example: "House 12, Road 5, Dhanmondi, Dhaka"
     })
     @IsString()
-    locationDetails: string;
+    locationDetails!: string;
 
 
     @ApiProperty({
         example: "+8801712345678"
     })
     @IsString()
-    contactPhone: string;
+    contactPhone!: string;
 
 
     @ApiProperty({
         example: 500
     })
     @IsNumber()
-    serviceAmount: number;
+    serviceAmount!: number;
 
 
     @ApiProperty({
         example: "Please arrive in the morning."
     })
     @IsString()
-    message: string;
+    message!: string;
 
 }

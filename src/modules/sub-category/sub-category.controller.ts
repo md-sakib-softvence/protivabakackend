@@ -145,20 +145,39 @@ export class SubCategoryController {
   }
 
 
-  @Delete(":sub-categoryId/deete")
+  // @Delete(":sub-categoryId/deete")
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  // @ApiOperation({
+  //   summary: "Sub-category Delete (Only Can Do Super Admin)"
+  // })
+  // async deleteCategory(@Param("sub-categoryId") Id: string) {
+  //   const result = await this.subCategoryService.deleteSubCategory(Id);
+
+  //   return {
+  //     success: true,
+  //     data: result
+  //   }
+
+  // }
+
+
+  @Delete(":subCategoryId/delete")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @ApiOperation({
     summary: "Sub-category Delete (Only Can Do Super Admin)"
   })
-  async deleteCategory(@Param("sub-categoryId") Id: string) {
-    const result = await this.subCategoryService.deleteSubCategory(Id);
+  async deleteSubCategory(
+    @Param("subCategoryId") id: string
+  ) {
+    const result = await this.subCategoryService.deleteSubCategory(id);
 
     return {
       success: true,
+      message: "Sub-category deleted successfully",
       data: result
-    }
-
+    };
   }
 
   @Get('/sub-category/:subCategoryId')

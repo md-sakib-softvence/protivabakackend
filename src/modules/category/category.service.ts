@@ -151,7 +151,8 @@ export class CategoryService {
         const result = await this.prisma.subCategory.findMany({
             where: {
                 categoryId: categoryId,
-                isActive: true
+                isActive: true,
+                isDelete : false
             },
             include: {
                 _count: {
@@ -188,7 +189,7 @@ export class CategoryService {
 
         if (!result) throw new NotFoundException("Category not found");
 
-        await this.prisma.subCategory.update({
+        await this.prisma.category.update({
             where: {
                 id: categoryId
             },

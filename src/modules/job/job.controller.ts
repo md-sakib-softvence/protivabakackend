@@ -23,6 +23,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiQuery, 
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { UpdateJobDtoPro } from './dto/update.job.dto';
 import { ProviderGuard } from 'src/common/guards/provider.guard';
+import { MakePopularDto } from './dto/make.populer.dto';
 @ApiTags("Job")
 @Controller('job')
 export class JobController {
@@ -204,9 +205,9 @@ export class JobController {
   @ApiOperation({ summary: "Make Populer Job (Only Can Admin)" })
   async makePopuler(
     @Param('id') jobId: string,
-    @Body('isPopuler', ParseBoolPipe) isPopuler: boolean,
+    @Body() isPopuler: MakePopularDto,
   ) {
-    await this.jobService.makePopuler(jobId, isPopuler);
+    await this.jobService.makePopuler(jobId, isPopuler.isPopuler);
 
     return {
       success: true,
