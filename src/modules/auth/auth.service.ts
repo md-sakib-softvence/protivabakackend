@@ -47,6 +47,38 @@ export class AuthService {
         private readonly cloudinary: CloudinaryUploadService,
     ) { }
 
+
+    async sentNotification(userId: string, title: string, body: string) {
+        const user = await this.prisma.user.findUnique(
+            {
+                where: {
+                    id: userId
+                }
+            }
+        )
+
+        if (!user) throw new NotFoundException("User not found");
+
+        if (user.role === "CLIENT" || user.role === "PROVIDER") {
+            if (user.isNotificationEnabled) {
+                if (user.fcmToken) {
+                    await this.messaging.send({
+                        token: user.fcmToken,
+                        notification: {
+                            title: title,
+                            body: body,
+                        },
+                        data: {
+                            type: "PUSH_NOTIFICATION",
+                            userId: user.id,
+                        },
+                    });
+                }
+            }
+        }
+
+    }
+
     // ==================== REGISTER ====================
     async register(dto: RegisterDto) {
         const existingUser = await this.prisma.user.findFirst({
@@ -308,19 +340,23 @@ export class AuthService {
 
         const tokens = await this.generateTokens(user.id, user.email, user.role!);
 
-        // 👇 এখানে notification
-        if (user.fcmToken) {
-            await this.messaging.send({
-                token: user.fcmToken,
-                notification: {
-                    title: "Login Successful 🔐",
-                    body: `Welcome back ${user.firstName || 'User'}!`,
-                },
-                data: {
-                    type: "LOGIN",
-                    userId: user.id,
-                },
-            });
+
+        if (user.role === "CLIENT" || user.role === "PROVIDER") {
+            if (user.isNotificationEnabled) {
+                if (user.fcmToken) {
+                    await this.messaging.send({
+                        token: user.fcmToken,
+                        notification: {
+                            title: "Login Successful 🔐",
+                            body: `Welcome back ${user.firstName || 'User'}!`,
+                        },
+                        data: {
+                            type: "LOGIN",
+                            userId: user.id,
+                        },
+                    });
+                }
+            }
         }
 
         await this.createSession(user.id, deviceId, ipAddress, userAgent, tokens.refreshToken);
@@ -667,12 +703,31 @@ export class AuthService {
 
         if (!user) {
             throw new UnauthorizedException('User not found');
-        }
+        };
+
+        const phone = await this.prisma.user.findUnique({ where: { phone: data.phone } })
 
         const allowedFields = ['firstName', 'lastName', 'email', 'phone', 'bio', 'streetAddress', 'city', 'state', 'zipCode'];
 
         if (!allowedFields.includes(dto.fildName)) {
             throw new BadRequestException('Invalid field name');
+        }
+
+        if (dto.fildName === "email" || dto.fildName === "phone") {
+            const where =
+                dto.fildName === "email"
+                    ? { email: dto.value }
+                    : { phone: dto.value };
+
+            const existing = await this.prisma.user.findFirst({
+                where,
+            });
+
+            if (existing && existing.id !== userId) {
+                throw new BadRequestException(
+                    `${dto.fildName} already exists`
+                );
+            }
         }
 
         const data: any = {};
@@ -691,6 +746,8 @@ export class AuthService {
                 type: 'PROFILE_UPDATE',
             },
         });
+
+        await this.sentNotification(user.id, "Profile Updated", `Your profile has been updated successfully. ${dto.fildName} is now ${dto.value}.`)
 
         const { password, otp, otpExpiry, refreshToken, ...rest } = updatedUser;
 
@@ -716,6 +773,8 @@ export class AuthService {
                 avatar: avaterUp?.secure_url
             }
         });
+
+        await this.sentNotification(user.id, "Profile Picture Updated", `Your profile picture has been updated`);
 
         return upProfile?.avatar
 
@@ -753,6 +812,7 @@ export class AuthService {
                 phone: data.phone,
                 password: hashedPassword,
                 city: data.city,
+                role: "PROVIDER",
                 nidNumber: data.nidNumber,
                 nidImage: nidImageUp.secure_url,
                 avatar: avaterUp.secure_url,
@@ -764,6 +824,8 @@ export class AuthService {
                 phoneVerified: true
             }
         });
+
+        await this.sentNotification(result.id, "Your account registration successfully", `Congratulation, You are a new provider in kajBD family.`)
 
         return result;
     }

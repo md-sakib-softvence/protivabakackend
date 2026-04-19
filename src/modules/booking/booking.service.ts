@@ -10,6 +10,37 @@ export class BookingService {
     constructor(private readonly prisma: PrismaService, @Inject('FIREBASE_MESSAGING') private readonly messaging: admin.messaging.Messaging
     ) { }
 
+    async sentNotification(userId: string, title: string, body: string) {
+        const user = await this.prisma.user.findUnique(
+            {
+                where: {
+                    id: userId
+                }
+            }
+        )
+
+        if (!user) throw new NotFoundException("User not found");
+
+        if (user.role === "CLIENT" || user.role === "PROVIDER") {
+            if (user.isNotificationEnabled) {
+                if (user.fcmToken) {
+                    await this.messaging.send({
+                        token: user.fcmToken,
+                        notification: {
+                            title: title,
+                            body: body,
+                        },
+                        data: {
+                            type: "PUSH_NOTIFICATION",
+                            userId: user.id,
+                        },
+                    });
+                }
+            }
+        }
+
+    }
+
     async getAllBooking(userId: string, page: number = 1, limit: number = 10, status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED", search?: string) {
 
         const findUser = await this.prisma.user.findUnique({
@@ -207,6 +238,8 @@ export class BookingService {
             },
         });
 
+        await this.sentNotification(data.providerId, "New Booking Request", `You have a new booking request for ${data.serviceName}. Please review the details and respond to the client.`);
+
         await this.prisma.notification.create({
             data: {
                 userId,
@@ -216,6 +249,7 @@ export class BookingService {
             },
         });
 
+        await this.sentNotification(userId, "Booking Request Sent", `Your booking request for ${data.serviceName} has been sent to the provider. You will be notified once the provider responds to your request.`);
 
         return createBooking;
     }
@@ -266,6 +300,7 @@ export class BookingService {
             },
         });
 
+        await this.sentNotification(booking.clientId, `Booking ${status === "COMPLETED" ? "Completed" : "In Progress"}`, `Your booking for ${booking.serviceName} has been marked as ${status === "COMPLETED" ? "completed" : "in progress"} by the provider. Please check the details of your booking for more information.`);
 
         await this.prisma.notification.create({
             data: {
@@ -274,7 +309,9 @@ export class BookingService {
                 title: `Booking ${status === "COMPLETED" ? "Completed" : "In Progress"}`,
                 message: `You have marked the booking for ${booking.serviceName} as ${status === "COMPLETED" ? "completed" : "in progress"}. Please check the details of the booking for more information.`,
             }
-        })
+        });
+
+        await this.sentNotification(booking.providerId, `Booking ${status === "COMPLETED" ? "Completed" : "In Progress"}`, `You have marked the booking for ${booking.serviceName} as ${status === "COMPLETED" ? "completed" : "in progress"}. Please check the details of the booking for more information.`);
 
         return result;
 
