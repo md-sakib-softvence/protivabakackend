@@ -47,10 +47,10 @@ export class PaymentService {
             currency: 'BDT',
             tran_id: transactionId,
 
-            success_url: `http://localhost:3000/api/v1/payment/success`,
-            fail_url: `http://localhost:3000/api/v1/payment/fail`,
-            cancel_url: `http://localhost:3000/api/v1/payment/cancel`,
-            ipn_url: `http://localhost:3000/api/v1/payment/ipn`,
+            success_url: `https://protiva-backend-ukw2.onrender.com/api/v1/payment/success`,
+            fail_url: `https://protiva-backend-ukw2.onrender.com/api/v1/payment/fail`,
+            cancel_url: `https://protiva-backend-ukw2.onrender.com/api/v1/payment/cancel`,
+            ipn_url: `https://protiva-backend-ukw2.onrender.com/api/v1/payment/ipn`,
 
             product_name: 'Service Payment',
             product_category: 'Service',
