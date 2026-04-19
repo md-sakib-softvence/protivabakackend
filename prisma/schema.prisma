@@ -48,10 +48,10 @@ model User {
   createdAt                   DateTime           @default(now())
   updatedAt                   DateTime           @updatedAt
   deletedAt                   DateTime?
-  isContactInfoPublic         Boolean            @default(false)
-  isProfilePublic             Boolean            @default(false)
-  isNotificationEnabled       Boolean            @default(false)
-  isBookingReminderEnabled    Boolean            @default(false)
+  isContactInfoPublic         Boolean            @default(true)
+  isProfilePublic             Boolean            @default(true)
+  isNotificationEnabled       Boolean            @default(true)
+  isBookingReminderEnabled    Boolean            @default(true)
 
   clientBookings   Booking[]        @relation("ClientBookings")
   providerBookings Booking[]        @relation("ProviderBookings")
