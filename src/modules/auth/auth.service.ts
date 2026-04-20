@@ -505,6 +505,8 @@ export class AuthService {
                 isViewTransaction: dto.isViewTransaction,
                 isViewWithdrawal: dto.isViewWithdrawal,
                 isManageWithdrawal: dto.isManageWithdrawal,
+                isJobView: dto.isJobView,
+                isJobManage: dto.isJobManage
             },
         });
 

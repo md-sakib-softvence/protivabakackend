@@ -201,6 +201,10 @@ model AdminPermission {
   isViewWithdrawal   Boolean @default(false)
   isManageWithdrawal Boolean @default(false)
 
+  //  
+  isJobView   Boolean @default(false)
+  isJobManage Boolean @default(false)
+
   grantedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

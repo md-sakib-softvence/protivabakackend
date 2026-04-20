@@ -12,7 +12,7 @@ export class AdminUserDto {
     @IsNotEmpty()
     @IsString()
     lastName!: string;
-    
+
     @ApiProperty({ example: 'john.doe@example.com' })
     @IsNotEmpty()
     @IsString()
@@ -50,7 +50,7 @@ export class AdminUserDto {
     @IsBoolean()
     isManageProvider!: boolean;
 
-     // User
+    // User
     @ApiProperty({ example: false })
     @IsNotEmpty()
     @IsBoolean()
@@ -60,7 +60,7 @@ export class AdminUserDto {
     @IsBoolean()
     isManageUser!: boolean;
 
-     // Category
+    // Category
     @ApiProperty({ example: false })
     @IsNotEmpty()
     @IsBoolean()
@@ -85,4 +85,16 @@ export class AdminUserDto {
     @IsNotEmpty()
     @IsBoolean()
     isManageWithdrawal!: boolean;
+
+    // job
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isJobView!: boolean;
+
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isJobManage!: boolean;
+
 };
