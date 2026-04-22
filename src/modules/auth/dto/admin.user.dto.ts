@@ -97,4 +97,14 @@ export class AdminUserDto {
     @IsBoolean()
     isJobManage!: boolean;
 
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isManageMarketing!: boolean;
+    
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isViewManageMarketing!: boolean;
+
 };

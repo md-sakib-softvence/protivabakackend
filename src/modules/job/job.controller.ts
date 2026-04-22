@@ -236,8 +236,37 @@ export class JobController {
   @ApiQuery({ name: "search" })
   async homeSearch(@Query("search") search: string) {
     const result = await this.jobService.HomeSearch(search);
-
     return result
+  };
 
+  @Get(`provider/:providerId/jobs`)
+  @ApiOperation({summary : "Provider all service details"})
+  @ApiParam({
+    name: 'providerId',
+    type: String,
+    description: 'Provider ID'
+  })
+  async getJobsByProvider(@Param('providerId') providerId: string) {
+    return this.jobService.providerServiceDetails(providerId);
   }
+
+  @Patch('service-availability/:providerId')
+  @ApiOperation({ summary: 'Update provider service availability' })
+  @ApiParam({
+    name: 'providerId',
+    type: String,
+    description: 'Provider ID'
+  })
+  @ApiQuery({
+    name: 'isAvailable',
+    type: Boolean,
+    description: 'Service availability status'
+  })
+  async updateServiceAvailability(
+    @Param('providerId') providerId: string,
+    @Query('isAvailable') isAvailable: boolean
+  ) {
+    return this.jobService.serviceAvailability(providerId, isAvailable);
+  }
+
 }

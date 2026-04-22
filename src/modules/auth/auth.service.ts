@@ -490,7 +490,7 @@ export class AuthService {
             },
         });
 
-        await this.prisma.adminPermission.create({
+        await this.prisma.adminPermission.create({      
             data: {
                 userId: adminUser.id,
                 isViewBooking: dto.isViewBooking,
@@ -506,7 +506,9 @@ export class AuthService {
                 isViewWithdrawal: dto.isViewWithdrawal,
                 isManageWithdrawal: dto.isManageWithdrawal,
                 isJobView: dto.isJobView,
-                isJobManage: dto.isJobManage
+                isJobManage: dto.isJobManage,
+                isViewManageMarketing: dto.isViewManageMarketing,
+                isManageMarketing: dto.isManageMarketing
             },
         });
 
@@ -645,6 +647,10 @@ export class AuthService {
                         isViewTransaction: true,
                         isViewWithdrawal: true,
                         isManageWithdrawal: true,
+                        isJobView: true,
+                        isJobManage: true,
+                        isViewManageMarketing: true,
+                        isManageMarketing: true
                     },
                 },
             },
@@ -691,6 +697,8 @@ export class AuthService {
                 isViewTransaction: dto.isViewTransaction,
                 isViewWithdrawal: dto.isViewWithdrawal,
                 isManageWithdrawal: dto.isManageWithdrawal,
+                isViewManageMarketing: dto.isViewManageMarketing,
+                isManageMarketing: dto.isManageMarketing
             },
         });
 

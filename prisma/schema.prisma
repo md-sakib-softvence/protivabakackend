@@ -205,6 +205,10 @@ model AdminPermission {
   isJobView   Boolean @default(false)
   isJobManage Boolean @default(false)
 
+    // marketing
+    isViewManageMarketing Boolean @default(false)
+    isManageMarketing Boolean @default(false)
+
   grantedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -457,6 +457,45 @@ export class JobService {
         );
 
         return result;
+    };
+
+
+    async providerServiceDetails(providerId: string) {
+        const jobs = await this.prisma.job.findMany({
+            where: {
+                userId: providerId
+            },
+            select: {
+                bookings: true
+            }
+        });
+
+        if (!jobs) throw new NotFoundException("No jobs found for this provider");
+
+        return jobs;
+    }
+
+    async serviceAvailability(providerId: string, value: boolean) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: providerId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+
+        const update = await this.prisma.user.update({
+            where: {
+                id: providerId
+            },
+            data: {
+                providerServiceAvailability: value
+            }
+        });
+
+        return {
+            isAvailable: update.providerServiceAvailability
+        };
     }
 
 }
