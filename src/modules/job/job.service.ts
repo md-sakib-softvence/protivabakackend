@@ -465,7 +465,7 @@ export class JobService {
             where: {
                 userId: providerId
             },
-            select: {
+            include: {
                 bookings: true
             }
         });
