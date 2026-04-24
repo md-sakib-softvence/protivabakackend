@@ -9,26 +9,29 @@ import helmet from 'helmet';
 // import * as cookieParser from 'cookie-parser';
 import * as net from 'net';
 import { HttpExceptionFilter } from './common/filters';
-import { LoggingInterceptor, TransformInterceptor } from './common/interceptors';
+import {
+  LoggingInterceptor,
+  TransformInterceptor,
+} from './common/interceptors';
 import rateLimit from 'express-rate-limit';
 import { Redis } from 'ioredis';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import 'dotenv/config';
 
-
-
-
 let apm: any;
 try {
   apm = require('elastic-apm-node');
-} catch { }
+} catch {}
 
 let RedisStore: any;
 try {
   RedisStore = require('rate-limit-redis');
-} catch { }
+} catch {}
 
-async function getAvailablePort(startPort: number, maxAttempts = 10): Promise<number> {
+async function getAvailablePort(
+  startPort: number,
+  maxAttempts = 10,
+): Promise<number> {
   return new Promise((resolve, reject) => {
     let attempts = 0;
     const tryPort = (port: number) => {
@@ -72,15 +75,22 @@ function setupInMemoryRateLimiting(app: any, windowMs: number, max: number) {
       windowMs,
       max,
       skip: (req: any) =>
-        ['/health', '/metrics', '/docs'].some(p => req.url.includes(p)),
+        ['/health', '/metrics', '/docs'].some((p) => req.url.includes(p)),
     }),
   );
 }
 
-function setupRateLimiting(app: any, configService: ConfigService, nodeEnv: string): void {
+function setupRateLimiting(
+  app: any,
+  configService: ConfigService,
+  nodeEnv: string,
+): void {
   if (nodeEnv !== 'production') return;
 
-  const windowMs = configService.get<number>('RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000);
+  const windowMs = configService.get<number>(
+    'RATE_LIMIT_WINDOW_MS',
+    15 * 60 * 1000,
+  );
   const max = configService.get<number>('RATE_LIMIT_MAX', 100);
   const redisUrl = configService.get('REDIS_URL');
 
@@ -92,7 +102,7 @@ function setupRateLimiting(app: any, configService: ConfigService, nodeEnv: stri
         max,
         store: new RedisStore({ client: redisClient }),
         skip: (req: any) =>
-          ['/health', '/metrics', '/docs'].some(p => req.url.includes(p)),
+          ['/health', '/metrics', '/docs'].some((p) => req.url.includes(p)),
       }),
     );
   } else {
@@ -110,14 +120,19 @@ function setupRateLimiting(app: any, configService: ConfigService, nodeEnv: stri
 //   credentials: true,
 // });
 
-
-
-
-function setupSecurity(app: any, configService: ConfigService, nodeEnv: string): void {
-  app.use(helmet({ contentSecurityPolicy: nodeEnv === 'production' ? undefined : false }));
+function setupSecurity(
+  app: any,
+  configService: ConfigService,
+  nodeEnv: string,
+): void {
+  app.use(
+    helmet({
+      contentSecurityPolicy: nodeEnv === 'production' ? undefined : false,
+    }),
+  );
   app.enableCors({
     origin: true,
-    credentials: true
+    credentials: true,
   });
 }
 
@@ -125,14 +140,19 @@ function setupRequestLogging(app: any, logger: Logger): void {
   app.use((req: any, res: any, next: any) => {
     const start = Date.now();
     res.on('finish', () => {
-      logger.log(`${req.method} ${req.url} ${res.statusCode} ${Date.now() - start}ms`);
+      logger.log(
+        `${req.method} ${req.url} ${res.statusCode} ${Date.now() - start}ms`,
+      );
     });
     next();
   });
 }
 
 function setupSwagger(app: any, nodeEnv: string, port: number): void {
-  if (nodeEnv === 'production') return;
+  // Allow Swagger in production ONLY if explicitly enabled
+  if (nodeEnv === 'production' && process.env.ENABLE_SWAGGER !== 'true') {
+    return;
+  }
 
   const config = new DocumentBuilder()
     .setTitle('Service Marketplace API')
@@ -141,11 +161,12 @@ function setupSwagger(app: any, nodeEnv: string, port: number): void {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
+  // You can keep it at /docs
   SwaggerModule.setup('docs', app, document);
 
   new Logger('Swagger').log(`Swagger: http://localhost:${port}/docs`);
 }
-
 
 // function setupSwagger(app: any, nodeEnv: string, port: number): void {
 //   // app: any, configService: ConfigService, nodeEnv: string, port: number
@@ -275,9 +296,6 @@ function setupSwagger(app: any, nodeEnv: string, port: number): void {
 //   }
 // }
 
-
-
-
 export async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
@@ -305,7 +323,10 @@ export async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new TransformInterceptor(),
+  );
 
   setupRateLimiting(app, configService, nodeEnv);
   setupRequestLogging(app, logger);
