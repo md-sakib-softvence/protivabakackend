@@ -68,4 +68,24 @@ export class UpdatePermissionDto {
     @IsBoolean()
     isManageWithdrawal!: boolean;
 
+    // marketing
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isViewManageMarketing!: boolean;
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isManageMarketing!: boolean;
+
+    // marketing
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isJobView!: boolean;
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isJobManage!: boolean;
+
 }

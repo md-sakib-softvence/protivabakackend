@@ -19,6 +19,10 @@ model User {
   city                        String?
   state                       String?
   zipCode                     String?
+  yearsOfExprience            String?
+  nidNumber                   String?
+  nidImage                    String?
+  nidBackImage                String?
   country                     String             @default("BD")
   role                        UserRole           @default(CLIENT)
   status                      UserStatus         @default(PENDING)
@@ -31,6 +35,8 @@ model User {
   googleId                    String?            @unique
   appleId                     String?            @unique
   otp                         String?
+  fcmToken                    String?
+  isProviderRecomendation     Boolean            @default(false)
   otpExpiry                   DateTime?
   otpAttempts                 Int                @default(0)
   lastLogin                   DateTime?
@@ -43,10 +49,10 @@ model User {
   createdAt                   DateTime           @default(now())
   updatedAt                   DateTime           @updatedAt
   deletedAt                   DateTime?
-  isContactInfoPublic         Boolean            @default(false)
-  isProfilePublic             Boolean            @default(false)
-  isNotificationEnabled       Boolean            @default(false)
-  isBookingReminderEnabled    Boolean            @default(false)
+  isContactInfoPublic         Boolean            @default(true)
+  isProfilePublic             Boolean            @default(true)
+  isNotificationEnabled       Boolean            @default(true)
+  isBookingReminderEnabled    Boolean            @default(true)
 
   clientBookings   Booking[]        @relation("ClientBookings")
   providerBookings Booking[]        @relation("ProviderBookings")
@@ -196,6 +202,14 @@ model AdminPermission {
   isViewWithdrawal   Boolean @default(false)
   isManageWithdrawal Boolean @default(false)
 
+  //  
+  isJobView   Boolean @default(false)
+  isJobManage Boolean @default(false)
+
+  // marketing
+  isViewManageMarketing Boolean @default(false)
+  isManageMarketing     Boolean @default(false)
+
   grantedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -213,6 +227,7 @@ model Category {
   image         String?
   displayOrder  Int           @default(0)
   isActive      Boolean       @default(true)
+  isDelete      Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   jobs          Job[]
@@ -234,6 +249,7 @@ model SubCategory {
   displayOrder Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
+  isDelete     Boolean  @default(false)
   updatedAt    DateTime @updatedAt
   jobs         Job[]
   category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -272,6 +288,7 @@ model Job {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   deletedAt       DateTime?
+  isDelete        Boolean      @default(false)
   bookings        Booking[]
   category        Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   subCategory     SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
@@ -465,13 +482,13 @@ model Message {
   readAt      DateTime?
   isDeleted   Boolean     @default(false)
   deletedAt   DateTime?
-  metadata     Json?
-  
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
-  receiver    User        @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  sender      User        @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  receiver User @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender   User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([senderId, receiverId, createdAt])
   @@index([receiverId, isRead])

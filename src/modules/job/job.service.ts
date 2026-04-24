@@ -1,21 +1,31 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateJobDto } from './dto/create.job.dto';
 import { ERROR_MESSAGES } from 'src/common/constants';
 import { CloudinaryUploadService } from 'src/cloudinary/cloudinary.upload.service';
 import slugify from 'slugify';
 import { UpdateJobDto, UpdateJobDtoPro } from './dto/update.job.dto';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class JobService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly cloudinary: CloudinaryUploadService,
+        @Inject('FIREBASE_MESSAGING')
+        private readonly messaging: admin.messaging.Messaging,
     ) { }
 
 
 
     async createJob(data: CreateJobDto, userId: string, images: Express.Multer.File) {
+
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+        if (!user) throw new NotFoundException("User not valid");
+
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
         const isExistService = await this.prisma.job.findFirst({
             where: {
                 userId,
@@ -39,7 +49,9 @@ export class JobService {
         //     imageUrls = uploadResults.map((res: any) => res.secure_url);
         // }
 
-        // const upload = await this.cloudinary.uploadImageFromBuffer(images.buffer, "jobs", `${Date.now()}-${images.originalname}`)
+        const upload: any = await this.cloudinary.uploadImageFromBuffer(images.buffer, "jobs", `${Date.now()}-${images.originalname}`);
+
+        console.log(upload);
 
         const slug = slugify(data.title, { lower: true, strict: true });
 
@@ -53,7 +65,7 @@ export class JobService {
                 basePrice: data.basePrice,
                 priceType: data.priceType,
                 description: data.description,
-                thumbnail: "",
+                thumbnail: upload.secure_url,
                 status: data.status ?? 'DRAFT',
                 includeService: data.includeService,
             },
@@ -63,7 +75,7 @@ export class JobService {
     };
 
 
-    async getAllJobForUserHomePage(isPopuler: boolean, page: number, limit: number ) {
+    async getAllJobForUserHomePage(isPopuler: boolean, page: number, limit: number) {
         const skip = (page - 1) * limit;
 
         const whereCondition: any = {};
@@ -78,8 +90,17 @@ export class JobService {
             take: limit,
             orderBy: {
                 createdAt: "desc"
+            },
+            include: {
+                user: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
             }
         });
+        //cmntym2og00031wbgt2z0knsz cmntylmxe00021wbgftf9afuf cmntylmxe00021wbgftf9afuf cmntym2og00031wbgt2z0knsz
 
         const total = await this.prisma.job.count({
             where: whereCondition,
@@ -100,6 +121,14 @@ export class JobService {
         const result = await this.prisma.job.findUnique({
             where: {
                 id: jobId
+            },
+            include: {
+                user: {
+                    select: {
+                        firstName: true,
+                        lastName: true
+                    }
+                }
             }
         });
 
@@ -314,6 +343,8 @@ export class JobService {
             throw new BadRequestException("You are not permited access this route.");
         };
 
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
         const update = await this.prisma.job.update({
             where: {
                 id: jobId
@@ -337,6 +368,9 @@ export class JobService {
         });
 
         if (!user) throw new NotFoundException("User not found");
+
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
 
         const job = await this.prisma.job.findUnique({
             where: {
@@ -363,6 +397,150 @@ export class JobService {
 
         return update;
 
+    }
+
+
+    async makePopuler(jobId: string, isPopuler: boolean) {
+
+        const job = await this.prisma.job.findUnique({
+            where: {
+                id: jobId
+            }
+        });
+
+        if (!job) throw new NotFoundException("Job not found");
+
+        await this.prisma.job.update({
+            where: {
+                id: jobId
+            },
+            data: {
+                isPopuler: isPopuler
+            }
+        })
+
+    };
+
+
+    async deleteJob(userId: string, jobId: string) {
+        const job = await this.prisma.job.findUnique({
+            where: {
+                id: jobId
+            }
+        });
+
+        if (!job) throw new NotFoundException("Job not found");
+
+        if (userId !== job.userId) throw new NotFoundException("You are not job owner.");
+
+        await this.prisma.job.delete({
+            where: {
+                id: jobId
+            }
+        });
+
+        return true
+
+    }
+
+    // async HomeSearch(search: string) {
+    //     const result = await this.prisma.$queryRawUnsafe(
+    //         `SELECT * FROM "jobs"
+    //  WHERE "deletedAt" IS NULL
+    //  AND (
+    //    title ILIKE $1
+    //    OR description ILIKE $1
+    //  )
+    //  ORDER BY "createdAt" DESC
+    //  LIMIT 10`,
+    //         `%${search}%`
+    //     );
+
+    //     return result;
+    // };
+
+
+    async HomeSearch(search: string) {
+        const result = await this.prisma.$queryRawUnsafe(
+            `
+    (
+      SELECT 
+        j.id,
+        j.title,
+        j.description,
+        j."createdAt",
+        'job' as "type",
+        j."slug",
+        j."thumbnail",
+        j."categoryId"
+      FROM "jobs" j
+      WHERE 
+        j."deletedAt" IS NULL
+        AND j."isDelete" = false
+        AND (j.title ILIKE $1 OR j.description ILIKE $1)
+    )
+    UNION ALL
+    (
+      SELECT 
+        c.id,
+        c.name as title,
+        c.description,
+        c."createdAt",
+        'category' as "type",
+        c."slug",
+        c."image" as thumbnail,
+        c.id as "categoryId"
+      FROM "categories" c
+      WHERE 
+        c."isDelete" = false
+        AND (c.name ILIKE $1 OR c.description ILIKE $1)
+    )
+    ORDER BY "categoryId", "createdAt" DESC
+    LIMIT 20
+    `,
+            `%${search}%`
+        );
+
+        return result;
+    }
+
+
+    async providerServiceDetails(providerId: string) {
+        const jobs = await this.prisma.job.findMany({
+            where: {
+                userId: providerId
+            },
+            include: {
+                bookings: true
+            }
+        });
+
+        if (!jobs) throw new NotFoundException("No jobs found for this provider");
+
+        return jobs;
+    }
+
+    async serviceAvailability(providerId: string, value: boolean) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: providerId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+
+        const update = await this.prisma.user.update({
+            where: {
+                id: providerId
+            },
+            data: {
+                providerServiceAvailability: value
+            }
+        });
+
+        return {
+            isAvailable: update.providerServiceAvailability
+        };
     }
 
 }

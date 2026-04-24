@@ -1,11 +1,43 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ERROR_MESSAGES } from 'src/common/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { MakeWithdrawRequestCardPaymentDto, MakeWithdrawRequestMobileBankingDto } from './dto/make.withdraw.request';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class WithdrawService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService, @Inject('FIREBASE_MESSAGING') private readonly messaging: admin.messaging.Messaging) { }
+
+    async sentNotification(userId: string, title: string, body: string) {
+        const user = await this.prisma.user.findUnique(
+            {
+                where: {
+                    id: userId
+                }
+            }
+        )
+
+        if (!user) throw new NotFoundException("User not found");
+
+        if (user.role === "CLIENT" || user.role === "PROVIDER") {
+            if (user.isNotificationEnabled) {
+                if (user.fcmToken) {
+                    await this.messaging.send({
+                        token: user.fcmToken,
+                        notification: {
+                            title: title,
+                            body: body,
+                        },
+                        data: {
+                            type: "PUSH_NOTIFICATION",
+                            userId: user.id,
+                        },
+                    });
+                }
+            }
+        }
+
+    }
 
     async getAllWithdrow(page: number, limit: number, search?: string, status?: "PENDING" | "APPROVED" | "PROCESSING" | "COMPLETED" | "REJECTED" | "CANCELLED") {
         const skip = (page - 1) * limit;
@@ -146,7 +178,9 @@ export class WithdrawService {
                 title: "You Withdraw request approved",
                 message: `Your withdrawal request ${ckeck.amount} has been approved. We are currently processing your transaction, and the amount will be credited to your account shortly. Thank you for your patience.`
             }
-        })
+        });
+
+        await this.sentNotification(result.userId, "You Withdraw request approved", `Your withdrawal request ${ckeck.amount} has been approved. We are currently processing your transaction, and the amount will be credited to your account shortly. Thank you for your patience.`)
 
         return result
 
@@ -180,6 +214,7 @@ export class WithdrawService {
             },
         });
 
+        await this.sentNotification(ckeck.userId, "Withdraw Request Rejected", `We regret to inform you that your withdraw request of amount ${ckeck.amount} has been rejected. If you have any questions or need further assistance, please contact our support team.`)
 
         return result
     }
@@ -264,6 +299,17 @@ export class WithdrawService {
     }
 
     async makeCardWithdrawRequest(userId: string, data: MakeWithdrawRequestCardPaymentDto) {
+
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
         const wallet = await this.prisma.wallet.findUnique({
             where: {
                 userId: userId
@@ -291,12 +337,25 @@ export class WithdrawService {
             }
         });
 
+        await this.sentNotification(userId, "Withdraw Request Submitted", `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`);
+
         return requestWithdraw;
 
     };
 
 
     async makeIBankingWithdrawRequest(userId: string, data: MakeWithdrawRequestMobileBankingDto) {
+
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId
+            }
+        });
+
+        if (!user) throw new NotFoundException("User not found");
+
+        if (!user.providerServiceAvailability) throw new NotFoundException("Your account is currently unavailable due to administrative restrictions. Please contact support for more information.");
+
         const wallet = await this.prisma.wallet.findUnique({
             where: {
                 userId: userId
@@ -325,6 +384,9 @@ export class WithdrawService {
                 message: `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`,
             }
         });
+
+
+        await this.sentNotification(userId, "Withdraw Request Submitted", `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`);
 
         return requestWithdraw;
 

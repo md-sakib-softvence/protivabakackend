@@ -262,16 +262,10 @@ export class MessageGateway
     @ConnectedSocket() client: AuthSocket,
   ) {
     try {
-      await this.roomAccessGuard.verifyBookingAccess(
-        dto.bookingId,
-        client.user.id,
-      );
-
-      const message = await this.messageService.saveMessage(
-        client.user.id,
-        dto,
-      );
-
+      await this.roomAccessGuard.verifyBookingAccess(dto.bookingId, client.user.id);
+      console.log("Hit save message service-1");
+      const message = await this.messageService.saveMessage(client.user.id, dto);
+      console.log("Done save message");
       const roomId = message.roomId!;
 
       this.logger.log(

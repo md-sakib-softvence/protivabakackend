@@ -4,11 +4,12 @@ import {
     BadRequestException,
     ConflictException,
     NotFoundException,
+    Inject,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-
+import * as admin from 'firebase-admin';
 import {
     RegisterDto,
     LoginDto,
@@ -27,6 +28,8 @@ import { EmailService } from 'src/common/email/email.service';
 import { UpdatePermissionDto } from './dto/update.permission.dto';
 import { AdminUserDto } from './dto/admin.user.dto';
 import { UpdateProfileDto } from './dto/update.profile.dto';
+import { AddNewProviderDto } from './dto/add.new.provider.dto';
+import { CloudinaryUploadService } from '../../cloudinary/cloudinary.upload.service';
 
 @Injectable()
 export class AuthService {
@@ -39,7 +42,42 @@ export class AuthService {
         private readonly configService: ConfigService,
         private readonly prisma: PrismaService,
         private readonly emailService: EmailService,
+        @Inject('FIREBASE_MESSAGING')
+        private readonly messaging: admin.messaging.Messaging,
+        private readonly cloudinary: CloudinaryUploadService,
     ) { }
+
+
+    async sentNotification(userId: string, title: string, body: string) {
+        const user = await this.prisma.user.findUnique(
+            {
+                where: {
+                    id: userId
+                }
+            }
+        )
+
+        if (!user) throw new NotFoundException("User not found");
+
+        if (user.role === "CLIENT" || user.role === "PROVIDER") {
+            if (user.isNotificationEnabled) {
+                if (user.fcmToken) {
+                    await this.messaging.send({
+                        token: user.fcmToken,
+                        notification: {
+                            title: title,
+                            body: body,
+                        },
+                        data: {
+                            type: "PUSH_NOTIFICATION",
+                            userId: user.id,
+                        },
+                    });
+                }
+            }
+        }
+
+    }
 
     // ==================== REGISTER ====================
     async register(dto: RegisterDto) {
@@ -287,11 +325,39 @@ export class AuthService {
                 loginAttempts: 0,
                 lockedUntil: null,
                 lastLogin: new Date(),
-                lastActive: new Date(),
+                lastActive: new Date()
             },
         });
 
+        if (deviceId) {
+            await this.prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    fcmToken: deviceId
+                }
+            })
+        };
+
         const tokens = await this.generateTokens(user.id, user.email, user.role!);
+
+
+        if (user.role === "CLIENT" || user.role === "PROVIDER") {
+            if (user.isNotificationEnabled) {
+                if (user.fcmToken) {
+                    await this.messaging.send({
+                        token: user.fcmToken,
+                        notification: {
+                            title: "Login Successful 🔐",
+                            body: `Welcome back ${user.firstName || 'User'}!`,
+                        },
+                        data: {
+                            type: "LOGIN",
+                            userId: user.id,
+                        },
+                    });
+                }
+            }
+        }
 
         await this.createSession(user.id, deviceId, ipAddress, userAgent, tokens.refreshToken);
 
@@ -439,6 +505,10 @@ export class AuthService {
                 isViewTransaction: dto.isViewTransaction,
                 isViewWithdrawal: dto.isViewWithdrawal,
                 isManageWithdrawal: dto.isManageWithdrawal,
+                isJobView: dto.isJobView,
+                isJobManage: dto.isJobManage,
+                isViewManageMarketing: dto.isViewManageMarketing,
+                isManageMarketing: dto.isManageMarketing
             },
         });
 
@@ -577,6 +647,10 @@ export class AuthService {
                         isViewTransaction: true,
                         isViewWithdrawal: true,
                         isManageWithdrawal: true,
+                        isJobView: true,
+                        isJobManage: true,
+                        isViewManageMarketing: true,
+                        isManageMarketing: true
                     },
                 },
             },
@@ -623,13 +697,16 @@ export class AuthService {
                 isViewTransaction: dto.isViewTransaction,
                 isViewWithdrawal: dto.isViewWithdrawal,
                 isManageWithdrawal: dto.isManageWithdrawal,
+                isViewManageMarketing: dto.isViewManageMarketing,
+                isManageMarketing: dto.isManageMarketing,
+                isJobView: dto.isJobView,
+                isJobManage: dto.isJobManage
             },
         });
 
         return { result };
 
     };
-
 
     async updateUserProfile(userId: string, dto: UpdateProfileDto) {
         const user = await this.prisma.user.findUnique({
@@ -638,12 +715,29 @@ export class AuthService {
 
         if (!user) {
             throw new UnauthorizedException('User not found');
-        }
+        };
 
         const allowedFields = ['firstName', 'lastName', 'email', 'phone', 'bio', 'streetAddress', 'city', 'state', 'zipCode'];
 
         if (!allowedFields.includes(dto.fildName)) {
             throw new BadRequestException('Invalid field name');
+        }
+
+        if (dto.fildName === "email" || dto.fildName === "phone") {
+            const where =
+                dto.fildName === "email"
+                    ? { email: dto.value }
+                    : { phone: dto.value };
+
+            const existing = await this.prisma.user.findFirst({
+                where,
+            });
+
+            if (existing && existing.id !== userId) {
+                throw new BadRequestException(
+                    `${dto.fildName} already exists`
+                );
+            }
         }
 
         const data: any = {};
@@ -663,11 +757,89 @@ export class AuthService {
             },
         });
 
+        await this.sentNotification(user.id, "Profile Updated", `Your profile has been updated successfully. ${dto.fildName} is now ${dto.value}.`)
+
         const { password, otp, otpExpiry, refreshToken, ...rest } = updatedUser;
 
         return rest;
 
     }
 
+
+    async updateUserProfilePicture(userId: string, avater: Express.Multer.File) {
+
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+        if (!user) throw new NotFoundException("User not valid");
+
+        const avaterUp: any = await this.cloudinary.uploadImageFromBuffer(avater.buffer, "avater", `${Date.now()}-${avater.originalname}`);
+
+
+        const upProfile = await this.prisma.user.update({
+            where: {
+                id: userId
+            },
+            data: {
+                avatar: avaterUp?.secure_url
+            }
+        });
+
+        await this.sentNotification(user.id, "Profile Picture Updated", `Your profile picture has been updated`);
+
+        return upProfile?.avatar
+
+    }
+
+    async getMe(userId: string) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new NotFoundException("User not found");
+
+        const { password, otp, otpExpiry, refreshToken, ...rest } = user;
+
+        return rest
+
+    }
+
+    async addNewProvider(avater: Express.Multer.File, nidImage: Express.Multer.File, nidBackImage: Express.Multer.File, data: AddNewProviderDto) {
+        const checkEmail = await this.prisma.user.findUnique({ where: { email: data.email } });
+
+        if (checkEmail) throw new BadRequestException("Already use this email");
+
+        const checkPhone = await this.prisma.user.findUnique({ where: { phone: data.phone } });
+
+        if (checkPhone) throw new BadRequestException("Already use this phone number");
+
+        const avaterUp: any = await this.cloudinary.uploadImageFromBuffer(avater.buffer, "avater", `${Date.now()}-${avater.originalname}`);
+        const nidImageUp: any = await this.cloudinary.uploadImageFromBuffer(nidImage.buffer, "nidImage", `${Date.now()}-${nidImage.originalname}`);
+        const nidBackImageUp: any = await this.cloudinary.uploadImageFromBuffer(nidBackImage.buffer, "nidBackImage", `${Date.now()}-${nidBackImage.originalname}`);
+
+        const hashedPassword = await bcrypt.hash(data.password, 10);
+
+        const result = await this.prisma.user.create({
+            data: {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                phone: data.phone,
+                password: hashedPassword,
+                city: data.city,
+                role: "PROVIDER",
+                nidNumber: data.nidNumber,
+                nidImage: nidImageUp.secure_url,
+                nidBackImage: nidBackImageUp.secure_url,
+                avatar: avaterUp.secure_url,
+                streetAddress: data.serviceLocation,
+                yearsOfExprience: data.yearOfExprience,
+                bio: data.bio,
+                status: "ACTIVE",
+                emailVerified: true,
+                phoneVerified: true
+            }
+        });
+
+        await this.sentNotification(result.id, "Your account registration successfully", `Congratulation, You are a new provider in kajBD family.`)
+
+        return result;
+    }
 
 }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create.category.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateCategoryDto } from './dto/update.category.dto';
@@ -60,6 +60,7 @@ export class CategoryService {
         }
 
 
+
         let updatedSlug = category.slug;
         if (data.name && data.name !== category.name) {
             updatedSlug = await this.generateUniqueSlug(data.name);
@@ -96,16 +97,24 @@ export class CategoryService {
     }
 
     async ClientHomeCategory(page = 1, limit = 15) {
-        console.log("S-1");
         const skip = (page - 1) * limit;
 
-        const total = await this.prisma.category.count();
-        console.log("S-2")
+        const whereCondition = {
+            isActive: true,
+            isDelete: false
+        };
+
+        const total = await this.prisma.category.count({
+            where: whereCondition,
+
+        });
+
         const categories = await this.prisma.category.findMany({
+            where: whereCondition,
             skip,
             take: limit
         });
-        console.log("S-3")
+
         return {
             page,
             limit,
@@ -120,15 +129,30 @@ export class CategoryService {
 
         const skip = (page - 1) * limit;
 
+        const category = await this.prisma.category.findUnique({
+            where: {
+                id: categoryId
+            }
+        });
+
+        if (!category) throw new NotFoundException("Category not found");
+
+        if (!category.isActive) throw new BadRequestException("This category is currently unavailable. Please choose another category.");
+
+
         const count = await this.prisma.subCategory.count({
             where: {
-                categoryId: categoryId
+                categoryId: categoryId,
+                isActive: true,
+                isDelete: false
             }
         })
 
         const result = await this.prisma.subCategory.findMany({
             where: {
                 categoryId: categoryId,
+                isActive: true,
+                isDelete : false
             },
             include: {
                 _count: {
@@ -157,13 +181,22 @@ export class CategoryService {
 
     async deleteCategory(categoryId: string) {
 
-        const result = await this.prisma.subCategory.delete({
+        const result = await this.prisma.category.findUnique({
             where: {
                 id: categoryId
             }
         });
 
         if (!result) throw new NotFoundException("Category not found");
+
+        await this.prisma.category.update({
+            where: {
+                id: categoryId
+            },
+            data: {
+                isDelete: true
+            }
+        });
 
         return null
 

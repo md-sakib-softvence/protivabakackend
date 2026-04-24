@@ -112,7 +112,7 @@ function setupRateLimiting(
 
 // const allowedOrigins = [
 //   'http://localhost:3000',
-//   'https://your-frontend-domain.com'
+//   'https://protiva502.vercel.app'
 // ];
 
 // app.enableCors({

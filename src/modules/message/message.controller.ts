@@ -21,10 +21,12 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { MessageService } from './message.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { GetMessagesDto, MarkReadDto } from './dto/sent.message.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 
 const MB = 1024 * 1024;
 
+@ApiBearerAuth()
 @Controller('messages')
 @UseGuards(JwtAuthGuard)
 export class MessageController {

@@ -22,7 +22,7 @@ export class MessageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudinary: CloudinaryUploadService,
-  ) {}
+  ) { }
 
   // ─── Room Management ────────────────────────────────────────────────────────
   async getOrCreateRoom(bookingId: string): Promise<string> {
@@ -86,26 +86,28 @@ export class MessageService {
       where: { id: dto.bookingId },
       select: { clientId: true, providerId: true, status: true },
     });
+    console.log("s-1");
     if (!booking) throw new NotFoundException('Booking not found');
-
+    console.log("s-2");
     if (booking.clientId !== senderId && booking.providerId !== senderId) {
       throw new ForbiddenException('You are not a participant of this booking');
     }
-
+    console.log("s-3");
     const expectedReceiver = booking.clientId === senderId ? booking.providerId : booking.clientId;
     if (dto.receiverId !== expectedReceiver) {
       throw new BadRequestException('Invalid receiver for this booking');
     }
-
+        console.log("s-4");
     if (!dto.content && !dto.mediaUrl) {
       throw new BadRequestException('Message must have content or media');
     }
+        console.log("s-5");
     if (dto.messageType === MessageType.AUDIO && !dto.mediaUrl) {
       throw new BadRequestException('Audio message requires a mediaUrl');
     }
-
+    console.log("s-6");
     const roomId = await this.getOrCreateRoom(dto.bookingId);
-
+    console.log("s-7");
     const message = await this.prisma.message.create({
       data: {
         senderId,
@@ -129,12 +131,12 @@ export class MessageService {
         },
       },
     });
-
+        console.log("s-8");
     await this.prisma.user.update({
       where: { id: senderId },
       data: { lastActive: new Date() },
     });
-
+        console.log("s-8");
     return this.formatMessage(message, dto.bookingId, roomId);
   }
 

@@ -1,15 +1,49 @@
-import { Body, Controller, Get, NotFoundException, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, NotFoundException, Post, Query, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { CreatePaymentDto } from './dto/payment.dto';
+import * as admin from 'firebase-admin';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { PrismaService } from 'src/prisma/prisma.service';
 import axios from 'axios';
 
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService, private readonly Prisma: PrismaService) { }
+  constructor(private readonly paymentService: PaymentService, private readonly Prisma: PrismaService, @Inject('FIREBASE_MESSAGING')
+  private readonly messaging: admin.messaging.Messaging) { }
+
+
+  async sentNotification(userId: string, title: string, body: string) {
+    const user = await this.Prisma.user.findUnique(
+      {
+        where: {
+          id: userId
+        }
+      }
+    )
+
+    if (!user) throw new NotFoundException("User not found");
+
+    if (user.role === "CLIENT" || user.role === "PROVIDER") {
+      if (user.isNotificationEnabled) {
+        if (user.fcmToken) {
+          await this.messaging.send({
+            token: user.fcmToken,
+            notification: {
+              title: title,
+              body: body,
+            },
+            data: {
+              type: "PUSH_NOTIFICATION",
+              userId: user.id,
+            },
+          });
+        }
+      }
+    }
+
+  }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, UseGuards)
@@ -60,6 +94,8 @@ export class PaymentController {
         },
       });
 
+      await this.sentNotification(findPayment.userId, "Payment Successful", `Your payment has been successfully processed. Thank you for your payment!`);
+
     }
 
     return { message: 'Payment success' };
@@ -83,6 +119,8 @@ export class PaymentController {
       },
     });
 
+    await this.sentNotification(payment.userId, "Payment Failed", `Your payment has failed. Please try again or contact support if the issue persists.`);
+
     return { message: 'Payment failed' };
   }
 
@@ -104,6 +142,8 @@ export class PaymentController {
         message: `Your payment for booking ID ${payment.bookingId} has been cancelled. If this was a mistake, please try making the payment again.`,
       },
     });
+
+    await this.sentNotification(payment.userId, "Payment Cancelled", `Your payment has been cancelled. If this was a mistake, please try making the payment again.`);
 
     return { message: 'Payment cancelled' };
   }

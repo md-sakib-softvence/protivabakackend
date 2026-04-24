@@ -20,6 +20,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { LocationModule } from './modules/location/location.module';
 import { MessageModule } from './modules/message/message.module';
 import { CallModule } from './modules/call/call.module';
+import { ReviewModule } from './modules/review/review.module';
+import { ExpartRecommendationModule } from './modules/expart-recommendation/expart-recommendation.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { TransectionModule } from './modules/transection/transection.module';
+import { FirebaseModule } from './modules/pushNotification/firebase.push.notification';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -55,11 +61,17 @@ import { CallModule } from './modules/call/call.module';
     BookingModule,
     WithdrawModule,
     EmailModule,
+    TransectionModule,
     MarketingModule,
     PaymentModule,
     LocationModule,
     MessageModule,
-    CallModule
+    CallModule,
+    ReviewModule,
+    AnalyticsModule,
+    ExpartRecommendationModule,
+    FirebaseModule,
+    NotificationModule
   ],
 
   controllers: [AppController],
