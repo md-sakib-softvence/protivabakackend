@@ -180,7 +180,7 @@ export class WithdrawService {
             }
         });
 
-        await this.sentNotification(result.id, "You Withdraw request approved", `Your withdrawal request ${ckeck.amount} has been approved. We are currently processing your transaction, and the amount will be credited to your account shortly. Thank you for your patience.`)
+        await this.sentNotification(result.userId, "You Withdraw request approved", `Your withdrawal request ${ckeck.amount} has been approved. We are currently processing your transaction, and the amount will be credited to your account shortly. Thank you for your patience.`)
 
         return result
 
@@ -214,7 +214,7 @@ export class WithdrawService {
             },
         });
 
-        await this.sentNotification(ckeck.id, "Withdraw Request Rejected", `We regret to inform you that your withdraw request of amount ${ckeck.amount} has been rejected. If you have any questions or need further assistance, please contact our support team.`)
+        await this.sentNotification(ckeck.userId, "Withdraw Request Rejected", `We regret to inform you that your withdraw request of amount ${ckeck.amount} has been rejected. If you have any questions or need further assistance, please contact our support team.`)
 
         return result
     }

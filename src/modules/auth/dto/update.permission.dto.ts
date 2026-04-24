@@ -77,4 +77,15 @@ export class UpdatePermissionDto {
     @IsNotEmpty()
     @IsBoolean()
     isManageMarketing!: boolean;
+
+    // marketing
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isJobView!: boolean;
+    @ApiProperty({ example: false })
+    @IsNotEmpty()
+    @IsBoolean()
+    isJobManage!: boolean;
+
 }

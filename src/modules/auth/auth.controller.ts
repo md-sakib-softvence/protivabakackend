@@ -265,6 +265,7 @@ export class AuthController {
     FileFieldsInterceptor([
       { name: 'avatar', maxCount: 1 },
       { name: 'nidImage', maxCount: 1 },
+      { name: 'nidBackImage', maxCount: 1 },
     ]),
   )
   @ApiBody({
@@ -289,6 +290,10 @@ export class AuthController {
           type: 'string',
           format: 'binary',
         },
+        nidBackImage: {
+          type: 'string',
+          format: 'binary',
+        },
       },
       required: [
         'firstName',
@@ -303,6 +308,7 @@ export class AuthController {
         'bio',
         'avatar',
         'nidImage',
+        'nidBackImage'
       ],
     },
   })
@@ -311,13 +317,15 @@ export class AuthController {
     files: {
       avatar?: Express.Multer.File;
       nidImage?: Express.Multer.File;
+      nidBackImage?: Express.Multer.File;
     },
     @Body() data: AddNewProviderDto,
   ) {
     const avatar = files.avatar?.[0];
     const nidImage = files.nidImage?.[0];
+    const nidBackImage = files.nidBackImage?.[0];
 
-    return this.authService.addNewProvider(avatar, nidImage, data);
+    return this.authService.addNewProvider(avatar, nidImage, nidBackImage, data);
   }
 
 }

@@ -443,21 +443,66 @@ export class JobService {
 
     }
 
+    // async HomeSearch(search: string) {
+    //     const result = await this.prisma.$queryRawUnsafe(
+    //         `SELECT * FROM "jobs"
+    //  WHERE "deletedAt" IS NULL
+    //  AND (
+    //    title ILIKE $1
+    //    OR description ILIKE $1
+    //  )
+    //  ORDER BY "createdAt" DESC
+    //  LIMIT 10`,
+    //         `%${search}%`
+    //     );
+
+    //     return result;
+    // };
+
+
     async HomeSearch(search: string) {
         const result = await this.prisma.$queryRawUnsafe(
-            `SELECT * FROM "jobs"
-     WHERE "deletedAt" IS NULL
-     AND (
-       title ILIKE $1
-       OR description ILIKE $1
-     )
-     ORDER BY "createdAt" DESC
-     LIMIT 10`,
+            `
+    (
+      SELECT 
+        j.id,
+        j.title,
+        j.description,
+        j."createdAt",
+        'job' as "type",
+        j."slug",
+        j."thumbnail",
+        j."categoryId"
+      FROM "jobs" j
+      WHERE 
+        j."deletedAt" IS NULL
+        AND j."isDelete" = false
+        AND (j.title ILIKE $1 OR j.description ILIKE $1)
+    )
+    UNION ALL
+    (
+      SELECT 
+        c.id,
+        c.name as title,
+        c.description,
+        c."createdAt",
+        'category' as "type",
+        c."slug",
+        c."image" as thumbnail,
+        c.id as "categoryId"
+      FROM "categories" c
+      WHERE 
+        c."isDelete" = false
+        AND (c.name ILIKE $1 OR c.description ILIKE $1)
+    )
+    ORDER BY "categoryId", "createdAt" DESC
+    LIMIT 20
+    `,
             `%${search}%`
         );
 
         return result;
-    };
+    }
 
 
     async providerServiceDetails(providerId: string) {

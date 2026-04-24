@@ -22,6 +22,7 @@ model User {
   yearsOfExprience            String?
   nidNumber                   String?
   nidImage                    String?
+  nidBackImage                String?
   country                     String             @default("BD")
   role                        UserRole           @default(CLIENT)
   status                      UserStatus         @default(PENDING)
@@ -205,9 +206,9 @@ model AdminPermission {
   isJobView   Boolean @default(false)
   isJobManage Boolean @default(false)
 
-    // marketing
-    isViewManageMarketing Boolean @default(false)
-    isManageMarketing Boolean @default(false)
+  // marketing
+  isViewManageMarketing Boolean @default(false)
+  isManageMarketing     Boolean @default(false)
 
   grantedBy String?
   createdAt DateTime @default(now())

@@ -490,7 +490,7 @@ export class AuthService {
             },
         });
 
-        await this.prisma.adminPermission.create({      
+        await this.prisma.adminPermission.create({
             data: {
                 userId: adminUser.id,
                 isViewBooking: dto.isViewBooking,
@@ -698,7 +698,9 @@ export class AuthService {
                 isViewWithdrawal: dto.isViewWithdrawal,
                 isManageWithdrawal: dto.isManageWithdrawal,
                 isViewManageMarketing: dto.isViewManageMarketing,
-                isManageMarketing: dto.isManageMarketing
+                isManageMarketing: dto.isManageMarketing,
+                isJobView: dto.isJobView,
+                isJobManage: dto.isJobManage
             },
         });
 
@@ -798,7 +800,7 @@ export class AuthService {
 
     }
 
-    async addNewProvider(avater: Express.Multer.File, nidImage: Express.Multer.File, data: AddNewProviderDto) {
+    async addNewProvider(avater: Express.Multer.File, nidImage: Express.Multer.File, nidBackImage: Express.Multer.File, data: AddNewProviderDto) {
         const checkEmail = await this.prisma.user.findUnique({ where: { email: data.email } });
 
         if (checkEmail) throw new BadRequestException("Already use this email");
@@ -809,6 +811,7 @@ export class AuthService {
 
         const avaterUp: any = await this.cloudinary.uploadImageFromBuffer(avater.buffer, "avater", `${Date.now()}-${avater.originalname}`);
         const nidImageUp: any = await this.cloudinary.uploadImageFromBuffer(nidImage.buffer, "nidImage", `${Date.now()}-${nidImage.originalname}`);
+        const nidBackImageUp: any = await this.cloudinary.uploadImageFromBuffer(nidBackImage.buffer, "nidBackImage", `${Date.now()}-${nidBackImage.originalname}`);
 
         const hashedPassword = await bcrypt.hash(data.password, 10);
 
@@ -823,6 +826,7 @@ export class AuthService {
                 role: "PROVIDER",
                 nidNumber: data.nidNumber,
                 nidImage: nidImageUp.secure_url,
+                nidBackImage: nidBackImageUp.secure_url,
                 avatar: avaterUp.secure_url,
                 streetAddress: data.serviceLocation,
                 yearsOfExprience: data.yearOfExprience,
