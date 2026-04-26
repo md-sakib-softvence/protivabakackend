@@ -42,6 +42,7 @@ import { UpdatePermissionDto } from './dto/update.permission.dto';
 import { UpdateProfileDto } from './dto/update.profile.dto';
 import { AddNewProviderDto } from './dto/add.new.provider.dto';
 import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import { ClientRegistrationDto } from './dto/client.registration.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -110,7 +111,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Reset password with OTP' })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Invalid OTP' })
-  async resetPassword(@Body() dto: ResetPasswordDto & { email: string }) {
+  async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.email, dto);
   }
 
@@ -125,16 +126,51 @@ export class AuthController {
   }
 
   @Post('change-password')
-  @ApiBearerAuth('JWT-auth')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change password (authenticated)' })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   @ApiResponse({ status: 400, description: 'Current password incorrect' })
   async changePassword(
-    @GetUser('id') userId: string,
+    @GetUser() user: any,
     @Body() dto: ChangePasswordDto,
   ) {
-    return this.authService.changePassword(userId, dto);
+    return this.authService.changePassword(user.id, dto);
+  }
+
+  @Post('client-registration')
+  @HttpCode(HttpStatus.CREATED)
+   @ApiOperation({ summary: 'Register client with avatar' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        firstName: { type: 'string', example: 'John' },
+        lastName: { type: 'string', example: 'Doe' },
+        email: { type: 'string', example: 'john@gmail.com' },
+        password: { type: 'string', example: '123456' },
+        phone: { type: 'string', example: '017xxxx' },
+        city: { type: 'string', example: 'Dhaka' },
+        avatar: {
+          type: 'string',
+          format: 'binary'
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('avatar'))
+  async registerClient(
+    @Body() dto: ClientRegistrationDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+
+    const result = await this.authService.clientRegistration(dto, file);
+
+    return {
+      message: result.message
+    };
   }
 
   @Post('logout')

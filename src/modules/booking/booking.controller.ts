@@ -19,16 +19,18 @@ export class BookingController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Page number (default 1)' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Items per page (default 10)' })
   @ApiQuery({ name: 'status', required: false, enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'REFUNDED'] })
+  @ApiQuery({ name: 'date', required: false, type: Date, example: '2023-01-01', description: 'Filter by booking date' })
   @ApiQuery({ name: 'search', required: false, type: String, example: 'booking123', description: 'Search by bookingNumber, serviceName or serviceDescription' })
   async getAllBookings(
     @GetUser("id") userId: string,
     @Query('page', ParseIntPipe) page = 1,
     @Query('limit', ParseIntPipe) limit = 10,
     @Query('status') status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED",
+    @Query('date') date?: Date,
     @Query('search') search?: string,
   ) {
     console.log("Api hit");
-    const result = await this.bookingService.getAllBooking(userId, page, limit, status, search);
+    const result = await this.bookingService.getAllBooking(userId, page, limit, status, date, search);
 
     return {
       success: true,

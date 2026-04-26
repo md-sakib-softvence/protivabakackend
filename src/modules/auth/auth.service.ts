@@ -30,6 +30,8 @@ import { AdminUserDto } from './dto/admin.user.dto';
 import { UpdateProfileDto } from './dto/update.profile.dto';
 import { AddNewProviderDto } from './dto/add.new.provider.dto';
 import { CloudinaryUploadService } from '../../cloudinary/cloudinary.upload.service';
+import { ClientRegistrationDto } from './dto/client.registration.dto';
+import e from 'express';
 
 @Injectable()
 export class AuthService {
@@ -110,7 +112,10 @@ export class AuthService {
                 role: dto.role || UserRole.CLIENT,
                 otp,
                 otpExpiry,
-                status: UserStatus.PENDING,
+                emailVerified: false,
+                phoneVerified: true,
+                verificationStatus: "VERIFIED",
+                status: UserStatus.ACTIVE,
             },
             select: {
                 id: true,
@@ -136,7 +141,7 @@ export class AuthService {
         const user = await this.prisma.user.findUnique({
             where: { email: dto.email },
         });
-
+        console.log(user)
         if (!user) throw new UnauthorizedException('Invalid email');
         if (!user.otp || !user.otpExpiry) throw new BadRequestException('No OTP found');
         if (new Date() > user.otpExpiry) throw new BadRequestException('OTP has expired');
@@ -157,6 +162,8 @@ export class AuthService {
             where: { id: user.id },
             data: {
                 emailVerified: true,
+                phoneVerified: true,
+                verificationStatus: "VERIFIED",
                 status: UserStatus.ACTIVE,
                 otp: null,
                 otpExpiry: null,
@@ -198,21 +205,16 @@ export class AuthService {
             data: { otp, otpExpiry, otpAttempts: 0 },
         });
 
-        await this.emailService.sendVerificationEmail(user.email, otp, user.firstName);
+        await this.emailService.sendVerificationEmail(user.email, otp, `${user.firstName} ${user.lastName}`);
 
         return { message: 'OTP sent successfully' };
     }
 
     // ==================== FORGOT PASSWORD ====================
     async forgotPassword(dto: ForgotPasswordDto) {
-        const user = await this.prisma.user.findUnique({
-            where: { email: dto.email },
-        });
+        const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
 
-        if (!user) {
-            // Don't reveal if email exists (security best practice)
-            return { message: 'If your email exists, you will receive a reset code.' };
-        }
+        if (!user) throw new UnauthorizedException('User not found');
 
         const otp = this.generateOTP();
         const otpExpiry = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
@@ -222,9 +224,9 @@ export class AuthService {
             data: { otp, otpExpiry, otpAttempts: 0 },
         });
 
-        await this.emailService.sendPasswordResetEmail(user.email, otp, user.firstName);
+        await this.emailService.sendVerificationEmail(user.email, otp, `${user.firstName} ${user.lastName}`);
 
-        return { message: 'If your email exists, you will receive a reset code.' };
+        return { message: 'We have sent an OTP to your email. Please check your email.' };
     }
 
     // ==================== RESET PASSWORD ====================
@@ -256,6 +258,52 @@ export class AuthService {
         });
 
         return { message: 'Password reset successfully. You can now login with your new password.' };
+    }
+
+    async clientRegistration(dto: ClientRegistrationDto, avatar: Express.Multer.File) {
+        const { email, phone } = dto;
+
+        const existingUser = await this.prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email },
+                    { phone }
+                ]
+            }
+        });
+
+        if (existingUser) {
+            throw new ConflictException('Email or phone number already exists');
+        }
+
+        const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+        const avatarUpload: any = await this.cloudinary.uploadImageFromBuffer(avatar.buffer, "avatar", `${Date.now()}-${avatar.originalname}`);
+
+        const user = await this.prisma.user.create({
+            data: {
+                ...dto,
+                password: hashedPassword,
+                avatar: avatarUpload.secure_url
+            }
+        });
+
+
+        if (!user) throw new UnauthorizedException('User not found');
+        if (user.emailVerified) throw new BadRequestException('Email already verified');
+
+        const otp = this.generateOTP();
+        const otpExpiry = new Date(Date.now() + this.OTP_EXPIRY_MINUTES * 60 * 1000);
+
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: { otp, otpExpiry, otpAttempts: 0 },
+        });
+
+        await this.emailService.sendVerificationEmail(user.email, otp, `${user.firstName} ${user.lastName}`);
+
+        return { message: 'OTP sent successfully' };
+
     }
 
     // ==================== CHANGE PASSWORD (Authenticated) ====================

@@ -41,7 +41,7 @@ export class BookingService {
 
     }
 
-    async getAllBooking(userId: string, page: number = 1, limit: number = 10, status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED", search?: string) {
+    async getAllBooking(userId: string, page: number = 1, limit: number = 10, status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED", date?: Date | undefined, search?: string) {
 
         const findUser = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -50,6 +50,14 @@ export class BookingService {
                 adminPermissions: {
                     select: {
                         isViewBooking: true
+                    }
+                },
+                jobs: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        thumbnail: true
                     }
                 }
             }
@@ -64,6 +72,20 @@ export class BookingService {
         const skip = (page - 1) * limit;
         const filters: any = {};
         if (status) filters.status = status;
+
+        if (date) {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            filters.createdAt = {
+                gte: startOfDay,
+                lte: endOfDay,
+            };
+        }
+
         if (search) {
             filters.OR = [
                 { id: { contains: search, mode: "insensitive" } },
@@ -187,12 +209,22 @@ export class BookingService {
                 clientId: userId,
                 ...(status && { status })
             },
+            include: {
+                job: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        thumbnail: true
+                    }
+                }
+            },
             skip,
             take: limit,
             orderBy: {
                 createdAt: "desc"
             }
-        });
+        })
 
         return {
             meta: {
@@ -326,6 +358,16 @@ export class BookingService {
         const result = await this.prisma.booking.findMany({
             where: {
                 providerId: userId
+            },
+            include: {
+                job: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        thumbnail: true
+                    }
+                }
             },
             take: limit,
             skip: skip
