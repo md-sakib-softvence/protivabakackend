@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ToggleNotificationDto } from './dto/toggle.notification.dto';
 
 @Injectable()
 export class NotificationService {
@@ -30,6 +31,40 @@ export class NotificationService {
                 isRead: true
             }
         });
+    }
+
+    async toggleNotification(userId: string, dto: ToggleNotificationDto) {
+
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId
+            }
+        });
+
+        if(!user) throw new NotFoundException('User not found');
+
+     if(dto.enabled) {
+        await this.prisma.user.update({
+            where: {
+                id: userId
+            },
+            data: {
+              isNotificationEnabled: true
+            }
+        });
+     }else{
+        await this.prisma.user.update({
+            where: {
+                id: userId
+            },
+            data: {
+              isNotificationEnabled: false
+            }
+        });
+     }
+
+        return { status: dto.enabled ? 'enabled' : 'disabled' };
+
     }
 
 }

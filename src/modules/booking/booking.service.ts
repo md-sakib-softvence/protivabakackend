@@ -10,38 +10,49 @@ export class BookingService {
     constructor(private readonly prisma: PrismaService, @Inject('FIREBASE_MESSAGING') private readonly messaging: admin.messaging.Messaging
     ) { }
 
-    async sentNotification(userId: string, title: string, body: string) {
-        const user = await this.prisma.user.findUnique(
-            {
-                where: {
-                    id: userId
-                }
-            }
-        )
+      async sentNotification(userId: string, title: string, body: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId }
+        });
 
-        if (!user) throw new NotFoundException("User not found");
+        if (!user) return;
 
-        if (user.role === "CLIENT" || user.role === "PROVIDER") {
-            if (user.isNotificationEnabled) {
-                if (user.fcmToken) {
-                    await this.messaging.send({
-                        token: user.fcmToken,
-                        notification: {
-                            title: title,
-                            body: body,
-                        },
-                        data: {
-                            type: "PUSH_NOTIFICATION",
-                            userId: user.id,
-                        },
+        if (
+            (user.role === "CLIENT" || user.role === "PROVIDER") &&
+            user.isNotificationEnabled &&
+            user.fcmToken
+        ) {
+            try {
+                await this.messaging.send({
+                    token: user.fcmToken,
+                    notification: {
+                        title,
+                        body,
+                    },
+                    data: {
+                        type: "PUSH_NOTIFICATION",
+                        userId: user.id,
+                    },
+                });
+
+            } catch (error: any) {
+
+                if (
+                    error.code === "messaging/registration-token-not-registered" ||
+                    error.code === "messaging/invalid-registration-token"
+                ) {
+                    await this.prisma.user.update({
+                        where: { id: userId },
+                        data: { fcmToken: null }
                     });
                 }
+
+                console.log("FCM failed but ignored");
             }
         }
-
     }
 
-    async getAllBooking(userId: string, page: number = 1, limit: number = 10, status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED", search?: string) {
+    async getAllBooking(userId: string, page: number = 1, limit: number = 10, status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED", date?: Date | undefined, search?: string) {
 
         const findUser = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -50,6 +61,14 @@ export class BookingService {
                 adminPermissions: {
                     select: {
                         isViewBooking: true
+                    }
+                },
+                jobs: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        thumbnail: true
                     }
                 }
             }
@@ -64,6 +83,20 @@ export class BookingService {
         const skip = (page - 1) * limit;
         const filters: any = {};
         if (status) filters.status = status;
+
+        if (date) {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            filters.createdAt = {
+                gte: startOfDay,
+                lte: endOfDay,
+            };
+        }
+
         if (search) {
             filters.OR = [
                 { id: { contains: search, mode: "insensitive" } },
@@ -187,12 +220,22 @@ export class BookingService {
                 clientId: userId,
                 ...(status && { status })
             },
+            include: {
+                job: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        thumbnail: true
+                    }
+                }
+            },
             skip,
             take: limit,
             orderBy: {
                 createdAt: "desc"
             }
-        });
+        })
 
         return {
             meta: {
@@ -326,6 +369,16 @@ export class BookingService {
         const result = await this.prisma.booking.findMany({
             where: {
                 providerId: userId
+            },
+            include: {
+                job: {
+                    select: {
+                        id: true,
+                        title: true,
+                        description: true,
+                        thumbnail: true
+                    }
+                }
             },
             take: limit,
             skip: skip
