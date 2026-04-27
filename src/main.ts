@@ -309,6 +309,9 @@ export async function bootstrap() {
 
   const port = await getAvailablePort(configService.get<number>('PORT', 3000));
 
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+
   app.setGlobalPrefix('api');
 
   app.enableVersioning({
@@ -328,10 +331,6 @@ export async function bootstrap() {
     new LoggingInterceptor(),
     new TransformInterceptor(),
   );
-
-  
-  const expressApp = app.getHttpAdapter().getInstance();
-  expressApp.set('trust proxy', 1);
 
 
   setupRateLimiting(app, configService, nodeEnv);
