@@ -316,7 +316,7 @@ export async function bootstrap() {
     defaultVersion: '1',
   });
 
-  app.useWebSocketAdapter(new IoAdapter(app));
+  // app.useWebSocketAdapter(new IoAdapter(app));
 
   setupSecurity(app, configService, nodeEnv);
 

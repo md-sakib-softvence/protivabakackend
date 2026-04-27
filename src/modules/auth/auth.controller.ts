@@ -12,6 +12,7 @@ import {
   UploadedFiles,
   UseInterceptors,
   UploadedFile,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,6 +22,7 @@ import {
   ApiProperty,
   ApiConsumes,
   ApiBody,
+  ApiParam,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 
@@ -141,7 +143,7 @@ export class AuthController {
 
   @Post('client-registration')
   @HttpCode(HttpStatus.CREATED)
-   @ApiOperation({ summary: 'Register client with avatar' })
+  @ApiOperation({ summary: 'Register client with avatar' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -272,6 +274,20 @@ export class AuthController {
     return { user };
   };
 
+  // @Get('sub_admin/:adminId')
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard)
+  // @ApiParam({
+  //   name : 'adminId',
+  //   description : 'The ID of the sub-admin to retrieve',
+  //   example : '123e4567-e89b-12d3-a456-426614174000'
+  // })
+  // @ApiOperation({ summary: 'Get sub-admin profile' })
+  // @ApiResponse({ status: 200, description: 'Sub-admin profile data' })
+  // async getSubAdminProfileById(@Param('adminId') adminId: string) {
+  //   const user = await this.authService.getSubAdminProfile(adminId);
+  //   return { user };
+  // };
 
   @Patch('admin/user/permissions')
   @ApiBearerAuth()
