@@ -17,6 +17,7 @@ import rateLimit from 'express-rate-limit';
 import { Redis } from 'ioredis';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import 'dotenv/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 let apm: any;
 try {
@@ -301,7 +302,7 @@ function setupSwagger(app: any, nodeEnv: string, port: number): void {
 export async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   const nodeEnv = configService.get('NODE_ENV', 'development');
 
@@ -309,8 +310,10 @@ export async function bootstrap() {
 
   const port = await getAvailablePort(configService.get<number>('PORT', 3000));
 
-  const expressApp = app.getHttpAdapter().getInstance();
-  expressApp.set('trust proxy', 1);
+  // const expressApp = app.getHttpAdapter().getInstance();
+  // expressApp.set('trust proxy', 1);
+
+  app.set('trust proxy', 1);
 
   app.setGlobalPrefix('api');
 
