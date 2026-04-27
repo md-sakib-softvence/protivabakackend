@@ -10,35 +10,46 @@ export class BookingService {
     constructor(private readonly prisma: PrismaService, @Inject('FIREBASE_MESSAGING') private readonly messaging: admin.messaging.Messaging
     ) { }
 
-    async sentNotification(userId: string, title: string, body: string) {
-        const user = await this.prisma.user.findUnique(
-            {
-                where: {
-                    id: userId
-                }
-            }
-        )
+      async sentNotification(userId: string, title: string, body: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId }
+        });
 
-        if (!user) throw new NotFoundException("User not found");
+        if (!user) return;
 
-        if (user.role === "CLIENT" || user.role === "PROVIDER") {
-            if (user.isNotificationEnabled) {
-                if (user.fcmToken) {
-                    await this.messaging.send({
-                        token: user.fcmToken,
-                        notification: {
-                            title: title,
-                            body: body,
-                        },
-                        data: {
-                            type: "PUSH_NOTIFICATION",
-                            userId: user.id,
-                        },
+        if (
+            (user.role === "CLIENT" || user.role === "PROVIDER") &&
+            user.isNotificationEnabled &&
+            user.fcmToken
+        ) {
+            try {
+                await this.messaging.send({
+                    token: user.fcmToken,
+                    notification: {
+                        title,
+                        body,
+                    },
+                    data: {
+                        type: "PUSH_NOTIFICATION",
+                        userId: user.id,
+                    },
+                });
+
+            } catch (error: any) {
+
+                if (
+                    error.code === "messaging/registration-token-not-registered" ||
+                    error.code === "messaging/invalid-registration-token"
+                ) {
+                    await this.prisma.user.update({
+                        where: { id: userId },
+                        data: { fcmToken: null }
                     });
                 }
+
+                console.log("FCM failed but ignored");
             }
         }
-
     }
 
     async getAllBooking(userId: string, page: number = 1, limit: number = 10, status?: "PENDING" | "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "REFUNDED", date?: Date | undefined, search?: string) {
