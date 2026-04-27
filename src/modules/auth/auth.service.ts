@@ -432,21 +432,55 @@ export class AuthService {
         const tokens = await this.generateTokens(user.id, user.email, user.role!);
 
 
-        if (user.role === "CLIENT" || user.role === "PROVIDER") {
-            if (user.isNotificationEnabled) {
-                if (user.fcmToken) {
-                    await this.messaging.send({
-                        token: user.fcmToken,
-                        notification: {
-                            title: "Login Successful 🔐",
-                            body: `Welcome back ${user.firstName || 'User'}!`,
-                        },
-                        data: {
-                            type: "LOGIN",
-                            userId: user.id,
-                        },
+        // if (user.role === "CLIENT" || user.role === "PROVIDER") {
+        //     if (user.isNotificationEnabled) {
+        //         if (user.fcmToken) {
+        //             await this.messaging.send({
+        //                 token: user.fcmToken,
+        //                 notification: {
+        //                     title: "Login Successful 🔐",
+        //                     body: `Welcome back ${user.firstName || 'User'}!`,
+        //                 },
+        //                 data: {
+        //                     type: "LOGIN",
+        //                     userId: user.id,
+        //                 },
+        //             });
+        //         }
+        //     }
+        // }
+
+           if (
+            (user.role === "CLIENT" || user.role === "PROVIDER") &&
+            user.isNotificationEnabled &&
+            user.fcmToken
+        ) {
+            try {
+                await this.messaging.send({
+                    token: user.fcmToken,
+                    notification: {
+                        title: "Login Successful 🔐",
+                        body: `Welcome back ${user.firstName || 'User'}!`,
+                    },
+                    data: {
+                        type: "PUSH_NOTIFICATION",
+                        userId: user.id,
+                    },
+                });
+
+            } catch (error: any) {
+
+                if (
+                    error.code === "messaging/registration-token-not-registered" ||
+                    error.code === "messaging/invalid-registration-token"
+                ) {
+                    await this.prisma.user.update({
+                        where: { id: user.id },
+                        data: { fcmToken: null }
                     });
                 }
+
+                console.log("FCM failed but ignored");
             }
         }
 
