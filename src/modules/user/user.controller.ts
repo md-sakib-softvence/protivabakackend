@@ -5,7 +5,6 @@ import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { UserStatus } from '@prisma/client';
 import { GetUser } from 'src/common/decorators';
 import { SubAdminGuard } from 'src/common/guards/sub.admin.guard';
-import { SuperAdminGuard } from 'src/common/guards/admin.guard';
 
 @Controller('user')
 export class UserController {
