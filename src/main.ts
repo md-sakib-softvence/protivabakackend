@@ -21,12 +21,12 @@ import 'dotenv/config';
 let apm: any;
 try {
   apm = require('elastic-apm-node');
-} catch {}
+} catch { }
 
 let RedisStore: any;
 try {
   RedisStore = require('rate-limit-redis');
-} catch {}
+} catch { }
 
 async function getAvailablePort(
   startPort: number,
@@ -128,6 +128,8 @@ function setupSecurity(
   app.use(
     helmet({
       contentSecurityPolicy: nodeEnv === 'production' ? undefined : false,
+      crossOriginOpenerPolicy: false,
+      crossOriginEmbedderPolicy: false
     }),
   );
   app.enableCors({
