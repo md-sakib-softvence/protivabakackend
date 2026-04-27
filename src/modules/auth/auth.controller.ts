@@ -274,20 +274,20 @@ export class AuthController {
     return { user };
   };
 
-  // @Get('sub_admin/:adminId')
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAuthGuard)
-  // @ApiParam({
-  //   name : 'adminId',
-  //   description : 'The ID of the sub-admin to retrieve',
-  //   example : '123e4567-e89b-12d3-a456-426614174000'
-  // })
-  // @ApiOperation({ summary: 'Get sub-admin profile' })
-  // @ApiResponse({ status: 200, description: 'Sub-admin profile data' })
-  // async getSubAdminProfileById(@Param('adminId') adminId: string) {
-  //   const user = await this.authService.getSubAdminProfile(adminId);
-  //   return { user };
-  // };
+  @Get('sub_admin/:adminId')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiParam({
+    name : 'adminId',
+    description : 'The ID of the sub-admin to retrieve',
+    example : '123e4567-e89b-12d3-a456-426614174000'
+  })
+  @ApiOperation({ summary: 'Get sub-admin profile' })
+  @ApiResponse({ status: 200, description: 'Sub-admin profile data' })
+  async getSubAdminProfileById(@Param('adminId') adminId: string) {
+    const user = await this.authService.getSubAdminProfile(adminId);
+    return { user };
+  };
 
   @Patch('admin/user/permissions')
   @ApiBearerAuth()

@@ -319,7 +319,6 @@ export async function bootstrap() {
   // app.useWebSocketAdapter(new IoAdapter(app));
 
   setupSecurity(app, configService, nodeEnv);
-
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   app.useWebSocketAdapter(new IoAdapter(app));
@@ -329,6 +328,11 @@ export async function bootstrap() {
     new LoggingInterceptor(),
     new TransformInterceptor(),
   );
+
+  
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+
 
   setupRateLimiting(app, configService, nodeEnv);
   setupRequestLogging(app, logger);
