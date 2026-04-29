@@ -34,7 +34,6 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   RefreshTokenDto,
-
 } from './dto';
 import { GetUser, Public } from 'src/common/decorators';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -43,13 +42,16 @@ import { AdminUserDto } from './dto/admin.user.dto';
 import { UpdatePermissionDto } from './dto/update.permission.dto';
 import { UpdateProfileDto } from './dto/update.profile.dto';
 import { AddNewProviderDto } from './dto/add.new.provider.dto';
-import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from '@nestjs/platform-express';
 import { ClientRegistrationDto } from './dto/client.registration.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Public()
   @Post('register')
@@ -58,8 +60,6 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'Email or phone already exists' })
   async register(@Body() dto: RegisterDto) {
-
-
     return this.authService.register(dto);
   }
 
@@ -134,10 +134,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Change password (authenticated)' })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   @ApiResponse({ status: 400, description: 'Current password incorrect' })
-  async changePassword(
-    @GetUser() user: any,
-    @Body() dto: ChangePasswordDto,
-  ) {
+  async changePassword(@GetUser() user: any, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(user.id, dto);
   }
 
@@ -155,23 +152,24 @@ export class AuthController {
         password: { type: 'string', example: '123456' },
         phone: { type: 'string', example: '017xxxx' },
         city: { type: 'string', example: 'Dhaka' },
+        bio: { type: 'string', example: 'I am a software engineer' },
         avatar: {
           type: 'string',
-          format: 'binary'
+          format: 'binary',
         },
       },
+      required: ['firstName', 'lastName', 'email', 'password', 'phone', 'city'],
     },
   })
   @UseInterceptors(FileInterceptor('avatar'))
   async registerClient(
     @Body() dto: ClientRegistrationDto,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
-
     const result = await this.authService.clientRegistration(dto, file);
 
     return {
-      message: result.message
+      message: result.message,
     };
   }
 
@@ -204,50 +202,52 @@ export class AuthController {
   async getMe(@GetUser() user: any) {
     const result = await this.authService.getMe(user.id);
     return result;
-
   }
-
 
   @Patch('profile')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update user profile' })
-  @ApiResponse({ status: 200, description: 'User profile updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile updated successfully',
+  })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async updateUserProfile(@GetUser('id') userId: string, @Body() dto: UpdateProfileDto) {
+  async updateUserProfile(
+    @GetUser('id') userId: string,
+    @Body() dto: UpdateProfileDto,
+  ) {
     const result = await this.authService.updateUserProfile(userId, dto);
     return {
       success: true,
       message: 'User profile updated successfully',
-      data: { ...result }
-    }
-  };
+      data: { ...result },
+    };
+  }
 
-
-  @Patch("updateUserProfile")
+  @Patch('updateUserProfile')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: "Update User own profile picture" })
-  @ApiConsumes("multipart/form-data")
-  @UseInterceptors(FileInterceptor("avatar"))
+  @ApiOperation({ summary: 'Update User own profile picture' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('avatar'))
   @ApiBody({
     schema: {
-      type: "object",
+      type: 'object',
       properties: {
         avatar: {
-          type: "string",
-          format: "binary",
+          type: 'string',
+          format: 'binary',
         },
       },
     },
   })
   async updateUserOwnProfilePicture(
-    @GetUser("id") userId: string,
-    @UploadedFile() file: Express.Multer.File
+    @GetUser('id') userId: string,
+    @UploadedFile() file: Express.Multer.File,
   ) {
     return await this.authService.updateUserProfilePicture(userId, file);
   }
-
 
   @Post('admin/user/create')
   @ApiBearerAuth()
@@ -255,13 +255,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Create admin user (Only for super admins)' })
   @ApiResponse({ status: 201, description: 'Admin user created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async createAdminUser(@Body() dto: AdminUserDto, @GetUser('id') userId: string) {
+  async createAdminUser(
+    @Body() dto: AdminUserDto,
+    @GetUser('id') userId: string,
+  ) {
     const result = await this.authService.createAdminUser(userId, dto);
     return {
       success: true,
       message: 'Admin user created successfully',
-      data: { ...result }
-    }
+      data: { ...result },
+    };
   }
 
   @Get('sub_admin/profile')
@@ -272,44 +275,54 @@ export class AuthController {
   async getSubAdminProfile(@GetUser('id') userId: string) {
     const user = await this.authService.getSubAdminProfile(userId);
     return { user };
-  };
+  }
 
   @Get('sub_admin/:adminId')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiParam({
-    name : 'adminId',
-    description : 'The ID of the sub-admin to retrieve',
-    example : '123e4567-e89b-12d3-a456-426614174000'
+    name: 'adminId',
+    description: 'The ID of the sub-admin to retrieve',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiOperation({ summary: 'Get sub-admin profile' })
   @ApiResponse({ status: 200, description: 'Sub-admin profile data' })
   async getSubAdminProfileById(@Param('adminId') adminId: string) {
     const user = await this.authService.getSubAdminProfile(adminId);
     return { user };
-  };
+  }
 
   @Patch('admin/user/permissions')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Update admin user permissions (Only for super admins)' })
-  @ApiResponse({ status: 200, description: 'Admin user permissions updated successfully' })
+  @ApiOperation({
+    summary: 'Update admin user permissions (Only for super admins)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin user permissions updated successfully',
+  })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
-  async updateAdminUserPermissions(@Body() dto: UpdatePermissionDto, @GetUser('id') userId: string) {
-    const result = await this.authService.updateAdminUserPermissions(userId, dto);
+  async updateAdminUserPermissions(
+    @Body() dto: UpdatePermissionDto,
+    @GetUser('id') userId: string,
+  ) {
+    const result = await this.authService.updateAdminUserPermissions(
+      userId,
+      dto,
+    );
     return {
       success: true,
       message: 'Admin user permissions updated successfully',
-      data: { ...result }
-    }
+      data: { ...result },
+    };
   }
 
-  @Post("register-provider")
-  @ApiOperation({ summary: "Provider registration" })
+  @Post('register-provider')
+  @ApiOperation({ summary: 'Provider registration' })
   async registerProvider(@Body() data: AddNewProviderDto) {
     return data;
   }
-
 
   @Post('add-provider')
   @ApiConsumes('multipart/form-data')
@@ -360,7 +373,7 @@ export class AuthController {
         'bio',
         'avatar',
         'nidImage',
-        'nidBackImage'
+        'nidBackImage',
       ],
     },
   })
@@ -377,7 +390,11 @@ export class AuthController {
     const nidImage = files.nidImage?.[0];
     const nidBackImage = files.nidBackImage?.[0];
 
-    return this.authService.addNewProvider(avatar, nidImage, nidBackImage, data);
+    return this.authService.addNewProvider(
+      avatar,
+      nidImage,
+      nidBackImage,
+      data,
+    );
   }
-
 }

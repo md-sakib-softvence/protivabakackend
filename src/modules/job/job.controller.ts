@@ -19,19 +19,27 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JobService } from './job.service';
 import { CreateJobDto } from './dto/create.job.dto';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { UpdateJobDtoPro } from './dto/update.job.dto';
 import { ProviderGuard } from 'src/common/guards/provider.guard';
 import { MakePopularDto } from './dto/make.populer.dto';
-@ApiTags("Job")
+@ApiTags('Job')
 @Controller('job')
 export class JobController {
-  constructor(private readonly jobService: JobService) { }
+  constructor(private readonly jobService: JobService) {}
 
-  @Post("create-job")
+  @Post('create-job')
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Create Job Only Can Do (Provider)" })
+  @ApiOperation({ summary: 'Create Job Only Can Do (Provider)' })
   @UseGuards(JwtAuthGuard, ProviderGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -59,62 +67,87 @@ export class JobController {
           format: 'binary',
         },
       },
-      required: ['categoryId', 'subCategoryId', 'title', 'description', 'basePrice', 'priceType', 'includeService', 'image'],
+      required: [
+        'categoryId',
+        'subCategoryId',
+        'title',
+        'description',
+        'basePrice',
+        'priceType',
+        'includeService',
+        'image',
+      ],
     },
   })
-  @UseInterceptors(
-    FileInterceptor('image')
-  )
+  @UseInterceptors(FileInterceptor('image'))
   async createJob(
     @Body() data: CreateJobDto,
     @UploadedFile() image: Express.Multer.File,
     @GetUser('id') userId: string,
   ) {
     if (!image) {
-      throw new BadRequestException("Image is required");
+      throw new BadRequestException('Image is required');
     }
 
     return this.jobService.createJob(data, userId, image);
   }
 
-  @Get(":jobId/single-job")
+  @Get(':jobId/single-job')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: "Get Single Job" })
-  async getSingleJob(
-    @Query("jobId") jobId: string
-  ) {
-
+  @ApiOperation({ summary: 'Get Single Job' })
+  async getSingleJob(@Query('jobId') jobId: string) {
     const result = await this.jobService.getSingleJob(jobId);
 
     return {
       success: true,
-      data: result
-    }
-
+      data: result,
+    };
   }
 
-  @Patch(":jobId/update-jon-content")
+  @Patch(':jobId/update-jon-content')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, ProviderGuard)
-  async updateJobContent(@GetUser('id') userId: string, @Param("jobId") jobId: string, @Body() data: UpdateJobDtoPro) {
-    const result = await this.jobService.updateJObContent(userId, jobId, data)
+  async updateJobContent(
+    @GetUser('id') userId: string,
+    @Param('jobId') jobId: string,
+    @Body() data: UpdateJobDtoPro,
+  ) {
+    const result = await this.jobService.updateJObContent(userId, jobId, data);
 
     return {
       success: true,
-      message: "Job update successfully",
-      data: result
-    }
-
+      message: 'Job update successfully',
+      data: result,
+    };
   }
 
   @Get('home-jobs')
   @ApiOperation({ summary: 'Get all jobs for user homepage' })
-  @ApiQuery({ name: 'isPopuler', required: false, type: Boolean, example: true, description: 'Filter only popular jobs' })
-  @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Page number' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Items per page' })
+  @ApiQuery({
+    name: 'isPopuler',
+    required: false,
+    type: Boolean,
+    example: true,
+    description: 'Filter only popular jobs',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Items per page',
+  })
   async getAllJobForUserHomePage(
-    @Query('isPopuler', new DefaultValuePipe(false), ParseBoolPipe) isPopuler: boolean,
+    @Query('isPopuler', new DefaultValuePipe(false), ParseBoolPipe)
+    isPopuler: boolean,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
@@ -126,11 +159,9 @@ export class JobController {
 
     return {
       success: true,
-      data: result
-    }
-
+      data: result,
+    };
   }
-
 
   @Patch(':jobId/update/thumbnail')
   @ApiOperation({ summary: 'Update job thumbnail' })
@@ -139,7 +170,7 @@ export class JobController {
   @ApiParam({
     name: 'jobId',
     type: String,
-    description: 'Job ID'
+    description: 'Job ID',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -148,31 +179,36 @@ export class JobController {
       properties: {
         thumbnail: {
           type: 'string',
-          format: 'binary'
-        }
-      }
-    }
+          format: 'binary',
+        },
+      },
+    },
   })
   @UseInterceptors(FileInterceptor('thumbnail'))
   async updateJobThumbnail(
     @GetUser('id') userId: string,
     @Param('jobId') jobId: string,
-    @UploadedFile() thumbnail: Express.Multer.File
+    @UploadedFile() thumbnail: Express.Multer.File,
   ) {
-
-    return this.jobService.updateJObThumbnail(
-      userId,
-      jobId,
-      thumbnail
-    );
+    return this.jobService.updateJObThumbnail(userId, jobId, thumbnail);
   }
 
   @Get('my-job')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'My All Job (Only Can Do Provider)' })
-  @ApiQuery({ name: 'page', required: false, example: 1, description: 'Page number' })
-  @ApiQuery({ name: 'limit', required: false, example: 10, description: 'Number of jobs per page' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    example: 1,
+    description: 'Page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    example: 10,
+    description: 'Number of jobs per page',
+  })
   async getMyAllJob(
     @GetUser('id') userId: string,
     @Query('page') page: number = 1,
@@ -181,13 +217,22 @@ export class JobController {
     return this.jobService.getMyAllJob(userId, Number(page), Number(limit));
   }
 
-
   @Get('my-active-job')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'My All Active Job (Only Can Do Provider)' })
-  @ApiQuery({ name: 'page', required: false, example: 1, description: 'Page number' })
-  @ApiQuery({ name: 'limit', required: false, example: 10, description: 'Number of jobs per page' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    example: 1,
+    description: 'Page number',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    example: 10,
+    description: 'Number of jobs per page',
+  })
   async getMyActiveJob(
     @GetUser('id') userId: string,
     @Query('page') page: number = 1,
@@ -202,7 +247,7 @@ export class JobController {
   }
 
   @Patch('make-populer/:id')
-  @ApiOperation({ summary: "Make Populer Job (Only Can Admin)" })
+  @ApiOperation({ summary: 'Make Populer Job (Only Can Admin)' })
   async makePopuler(
     @Param('id') jobId: string,
     @Body() isPopuler: MakePopularDto,
@@ -226,25 +271,30 @@ export class JobController {
 
     return {
       success: true,
-      message: "Job deleted success"
-    }
-
+      message: 'Job deleted success',
+    };
   }
 
-
   @Get('home-search')
-  @ApiQuery({ name: "search" })
-  async homeSearch(@Query("search") search: string) {
+  @ApiQuery({ name: 'search' })
+  async homeSearch(@Query('search') search: string) {
     const result = await this.jobService.HomeSearch(search);
-    return result
-  };
+    return result;
+  }
+
+  @Get('global-search')
+  @ApiQuery({ name: 'search' })
+  async globalSearch(@Query('search') search: string) {
+    const result = await this.jobService.globalSearch(search);
+    return result;
+  }
 
   @Get(`provider/:providerId/jobs`)
-  @ApiOperation({summary : "Provider all service details"})
+  @ApiOperation({ summary: 'Provider all service details' })
   @ApiParam({
     name: 'providerId',
     type: String,
-    description: 'Provider ID'
+    description: 'Provider ID',
   })
   async getJobsByProvider(@Param('providerId') providerId: string) {
     return this.jobService.providerServiceDetails(providerId);
@@ -255,18 +305,17 @@ export class JobController {
   @ApiParam({
     name: 'providerId',
     type: String,
-    description: 'Provider ID'
+    description: 'Provider ID',
   })
   @ApiQuery({
     name: 'isAvailable',
     type: Boolean,
-    description: 'Service availability status'
+    description: 'Service availability status',
   })
   async updateServiceAvailability(
     @Param('providerId') providerId: string,
-    @Query('isAvailable') isAvailable: boolean
+    @Query('isAvailable') isAvailable: boolean,
   ) {
     return this.jobService.serviceAvailability(providerId, isAvailable);
   }
-
 }
