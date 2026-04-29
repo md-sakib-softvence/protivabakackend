@@ -596,6 +596,16 @@ model LocationUpdate {
   @@map("location_updates")
 }
 
+
+model Policy{
+  id        String   @id @default(cuid())
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("policies")
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ── NEW: CALL SESSIONS ───────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
