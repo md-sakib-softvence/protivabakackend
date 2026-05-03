@@ -67,4 +67,17 @@ export class NotificationService {
 
     }
 
+    async clearReadNotification(userId : string){
+        const result = await this.prisma.notification.updateMany({where : {userId : userId} , data : {isRead : true}});
+
+        return result
+
+    };
+
+
+    async deleteAllNotification(userId : string){
+        const result = await this.prisma.notification.deleteMany({where : {userId : userId}});
+        return result;
+    }
+
 }

@@ -35,7 +35,7 @@ import e from 'express';
 
 @Injectable()
 export class AuthService {
-  private readonly OTP_EXPIRY_MINUTES = 10;
+  private readonly OTP_EXPIRY_MINUTES = 2;
   private readonly MAX_LOGIN_ATTEMPTS = 5;
   private readonly LOCK_DURATION_MINUTES = 30;
 
@@ -1078,7 +1078,7 @@ export class AuthService {
         streetAddress: data.serviceLocation,
         yearsOfExprience: data.yearOfExprience,
         bio: data.bio,
-        status: 'ACTIVE',
+        status: "PENDING",
         emailVerified: true,
         phoneVerified: true,
       },

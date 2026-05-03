@@ -52,7 +52,7 @@ export class EmailService {
         <h1 style="color: #4F46E5; font-size: 42px; letter-spacing: 10px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px;">
           ${otp}
         </h1>
-        <p>This code will expire in <strong>10 minutes</strong>.</p>
+        <p>This code will expire in <strong>2 minutes</strong>.</p>
         <p style="color: #666;">If you did not request this code, please ignore this email.</p>
         <hr style="margin: 30px 0;">
         <p style="font-size: 12px; color: #888;">Protiva - Service Marketplace</p>

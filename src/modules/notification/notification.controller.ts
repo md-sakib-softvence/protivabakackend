@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt.auth.guard';
@@ -30,6 +30,18 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard)
   async toggleNotification(@GetUser() user: any, @Body() dto: ToggleNotificationDto) {
     return await this.notificationService.toggleNotification(user.id, dto);
+  }
+  @Patch('notification-read-clear')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async clearReadNotification(@GetUser() user: any) {
+    return await this.notificationService.clearReadNotification(user.id);
+  }
+  @Delete('notification-delete')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async deleteAllNotification(@GetUser() user: any) {
+    return await this.notificationService.deleteAllNotification(user.id);
   }
 
 }

@@ -7,7 +7,7 @@ import { SuperAdminGuard } from '../../common/guards/admin.guard';
 
 @Controller('policy')
 export class PolicyController {
-  constructor(private readonly policyService: PolicyService) {}
+  constructor(private readonly policyService: PolicyService) { }
 
   @Get()
   async getPolicy() {
@@ -20,4 +20,18 @@ export class PolicyController {
   async createPolicy(@Body() content: policyDto) {
     return await this.policyService.createPolicy(content.content);
   }
+
+
+  @Get('terms-condition')
+  async getTerms() {
+    return await this.policyService.getTerms();
+  }
+
+  @Put('terms-create')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  async createTerms(@Body() content: policyDto) {
+    return await this.policyService.createTerms(content.content);
+  }
+
 }

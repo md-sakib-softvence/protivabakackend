@@ -596,14 +596,21 @@ model LocationUpdate {
   @@map("location_updates")
 }
 
-
-model Policy{
+model Policy {
   id        String   @id @default(cuid())
   content   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("policies")
+}
+
+model TermsCondition {
+  id String @id @default(cuid())
+
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -629,7 +636,6 @@ model CallSession {
   booking Booking @relation(fields: [bookingId], references: [id])
 
   @@index([bookingId])
-  @@index([callerId, calleeId])
   @@index([status])
   @@map("call_sessions")
 }

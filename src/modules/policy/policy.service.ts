@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class PolicyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getPolicy() {
     return await this.prisma.policy.findFirst();
@@ -22,6 +22,26 @@ export class PolicyService {
       // Create a new policy if it doesn't exist
 
       return await this.prisma.policy.create({
+        data: { content },
+      });
+    }
+  }
+  async getTerms() {
+    return await this.prisma.termsCondition.findFirst();
+  }
+
+  async createTerms(content: string) {
+    const existingPolicy = await this.prisma.termsCondition.findFirst();
+
+    if (existingPolicy) {
+      console.log(existingPolicy);
+      return await this.prisma.termsCondition.update({
+        where: { id: existingPolicy.id },
+        data: { content },
+      });
+    } else {
+      console.log("Success Data");
+      return await this.prisma.termsCondition.create({
         data: { content },
       });
     }
