@@ -19,7 +19,7 @@ RUN npm install --legacy-peer-deps --fetch-retries=5 --fetch-retry-mintimeout=20
 
 COPY --chown=node:node . .
 
-RUN npx prisma generate
+# RUN npx prisma generate (moved to host-side generation to skip env check during build)
 RUN npm run build
 
 # ──────────────────────────────────────────
