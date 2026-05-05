@@ -130,11 +130,25 @@ function setupSecurity(
     helmet({
       contentSecurityPolicy: nodeEnv === 'production' ? undefined : false,
       crossOriginOpenerPolicy: false,
-      crossOriginEmbedderPolicy: false
+      crossOriginEmbedderPolicy: false,
     }),
   );
+
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://protiva502.vercel.app',
+    'https://admin.kaajbd.com.bd',
+  ];
+
   app.enableCors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
 }

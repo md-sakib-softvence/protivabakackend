@@ -45,15 +45,25 @@ COPY --from=builder --chown=node:node /usr/src/app/package*.json ./
 
 ENV NODE_ENV=production
 
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["bash", "-c", "\
+  if [ \"$SKIP_DB_WAIT\" != \"true\" ]; then \
   echo '⏳ Waiting for PostgreSQL...'; \
-  until pg_isready -h db -p 5432 -U \"$POSTGRES_USER\"; do sleep 2; done; \
+  until pg_isready -h \"${DB_HOST:-db}\" -p \"${DB_PORT:-5432}\" -U \"${POSTGRES_USER:-postgres}\"; do sleep 2; done; \
+  fi; \
   echo '⚙️  Generating Prisma Client...'; \
   npx prisma generate; \
   echo '📦 Running Prisma Migrations...'; \
   npx prisma migrate deploy; \
   echo '🚀 Starting API...'; \
-  exec node dist/main.js \
-"]
+  if [ -f dist/main.js ]; then \
+  exec node dist/main.js; \
+  elif [ -f dist/src/main.js ]; then \
+  exec node dist/src/main.js; \
+  else \
+  echo '❌ Error: Could not find main.js in dist/ or dist/src/'; \
+  ls -R dist; \
+  exit 1; \
+  fi; \
+  "]
