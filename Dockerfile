@@ -14,12 +14,15 @@ USER node
 
 COPY --chown=node:node package*.json ./
 COPY --chown=node:node prisma ./prisma
+COPY --chown=node:node docker-entrypoint.sh ./
 
-RUN npm install --legacy-peer-deps --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+RUN npm config set fetch-retry-maxtimeout 120000 && \
+  npm config set fetch-retries 10 && \
+  npm install --legacy-peer-deps
 
 COPY --chown=node:node . .
 
-# RUN npx prisma generate (moved to host-side generation to skip env check during build)
+RUN npx prisma generate
 RUN npm run build
 
 # ──────────────────────────────────────────
@@ -33,8 +36,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /usr/src/app
 
+# Pre-create directories and set owner
 RUN mkdir -p uploads/profile-images uploads-file/png \
-  && chown -R node:node uploads uploads-file
+  && chown -R node:node /usr/src/app
 
 USER node
 
@@ -42,28 +46,13 @@ COPY --from=builder --chown=node:node /usr/src/app/dist        ./dist
 COPY --from=builder --chown=node:node /usr/src/app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /usr/src/app/prisma      ./prisma
 COPY --from=builder --chown=node:node /usr/src/app/package*.json ./
+COPY --from=builder --chown=node:node /usr/src/app/tsconfig.json ./
+COPY --from=builder --chown=node:node /usr/src/app/docker-entrypoint.sh ./
+
+RUN chmod +x docker-entrypoint.sh
 
 ENV NODE_ENV=production
 
 EXPOSE 3001
 
-CMD ["bash", "-c", "\
-  if [ \"$SKIP_DB_WAIT\" != \"true\" ]; then \
-  echo '⏳ Waiting for PostgreSQL...'; \
-  until pg_isready -h \"${DB_HOST:-db}\" -p \"${DB_PORT:-5432}\" -U \"${POSTGRES_USER:-postgres}\"; do sleep 2; done; \
-  fi; \
-  echo '⚙️  Generating Prisma Client...'; \
-  npx prisma generate; \
-  echo '📦 Running Prisma Migrations...'; \
-  npx prisma migrate deploy; \
-  echo '🚀 Starting API...'; \
-  if [ -f dist/main.js ]; then \
-  exec node dist/main.js; \
-  elif [ -f dist/src/main.js ]; then \
-  exec node dist/src/main.js; \
-  else \
-  echo '❌ Error: Could not find main.js in dist/ or dist/src/'; \
-  ls -R dist; \
-  exit 1; \
-  fi; \
-  "]
+ENTRYPOINT ["./docker-entrypoint.sh"]

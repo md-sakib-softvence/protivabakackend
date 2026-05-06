@@ -1,14 +1,13 @@
-# ──────────────────────────────────────────────────────────────
-# docker-compose.yaml  –  production (--profile prod) &
-#                         local dev DB only (--profile dev)
-# ──────────────────────────────────────────────────────────────
+
 
 services:
-  # ── Application Server ─────────────────────────────────────
+  
   server:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=${DATABASE_URL}
     image: sakibsakib/protiva-be:latest
     container_name: protiva-be_server
     restart: always
@@ -22,13 +21,11 @@ services:
       - uploads:/usr/src/app/uploads
       - uploads_file:/usr/src/app/uploads-file
     ports:
-      - "${HOST_PORT:-3001}:3000"
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      - "${HOST_PORT:-3001}:3001"
     networks:
       - app_network
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/v1/health || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:3001/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -73,6 +70,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=${DATABASE_URL}
     container_name: protiva-be_db_setup
     env_file: .env
     depends_on:
@@ -81,13 +80,13 @@ services:
     restart: "no"
     networks:
       - app_network
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+    # environment:
+    #   - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-mydb}?schema=public
     command: >
       bash -c "
         echo '🚀 Running DB setup...';
-        npx prisma generate;
-        npx prisma db push --accept-data-loss;
+        npx prisma generate --config prisma/prisma.config.ts;
+        npx prisma db push --accept-data-loss --config prisma/prisma.config.ts;
         npx ts-node prisma/seeds/index.ts 2>/dev/null || echo '⚠️  No seed file found, skipping.';
         echo '✅ DB setup complete!';
       "

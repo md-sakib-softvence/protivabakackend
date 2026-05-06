@@ -7,13 +7,13 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "dev": "npx prisma generate && npx prisma db push && nest start --watch",
+    "dev": "npx prisma generate --config prisma/prisma.config.ts && npx prisma db push --config prisma/prisma.config.ts && nest start --watch",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
-    "render-build": "npx prisma generate && npm run build",
+    "start:prod": "node dist/src/main",
+    "render-build": "npx prisma generate --config prisma/prisma.config.ts && npm run build",
     "render-start": "node --max-old-space-size=4096 dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
@@ -120,5 +120,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "prisma": {
+    "seed": "npx ts-node prisma/seeds/index.ts"
   }
 }
