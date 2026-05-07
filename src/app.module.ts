@@ -27,6 +27,7 @@ import { TransectionModule } from './modules/transection/transection.module';
 import { FirebaseModule } from './modules/pushNotification/firebase.push.notification';
 import { NotificationModule } from './modules/notification/notification.module';
 import { PolicyModule } from './modules/policy/policy.module';
+import { CuponModule } from './modules/cupon/cupon.module';
 
 @Module({
   imports: [
@@ -73,10 +74,11 @@ import { PolicyModule } from './modules/policy/policy.module';
     ExpartRecommendationModule,
     FirebaseModule,
     NotificationModule,
-    PolicyModule
+    PolicyModule,
+    CuponModule
   ],
 
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

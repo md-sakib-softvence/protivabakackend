@@ -640,6 +640,17 @@ model CallSession {
   @@map("call_sessions")
 }
 
+model Coupon {
+  id                 String   @id @default(cuid())
+  couponCode         String   @unique
+  discountPercentage Int
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("coupons")
+}
+
 enum UserRole {
   SUPER_ADMIN
   SUB_ADMIN

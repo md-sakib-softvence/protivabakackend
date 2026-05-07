@@ -57,6 +57,5 @@ export class AddNewProviderDto {
 
     @ApiProperty({ example: 'I am a professional cleaner with 3 years experience' })
     @IsString()
-    @MaxLength(500)
     bio!: string;
 };
