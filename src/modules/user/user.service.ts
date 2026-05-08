@@ -120,7 +120,11 @@ export class UserService {
                 role: "PROVIDER"
             },
             data: {
-                verificationStatus: status
+                verificationStatus: status,
+                status : "ACTIVE",
+                emailVerified : true,
+                phoneVerified : true,
+                
             }
         });
 
