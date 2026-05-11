@@ -39,12 +39,13 @@ export class JwtWsGuard implements CanActivate {
       // Verify user still exists and is active
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
-        select: { id: true, email: true, role: true, status: true },
+        select: { id: true, email: true, role: true, status: true , verificationStatus : true, emailVerified : true, phoneVerified : true},
       });
 
-      if (!user || user.status !== 'ACTIVE') {
+      if (!user || user.status !== 'ACTIVE' || user.verificationStatus !== "VERIFIED" || user.phoneVerified !== true || user.emailVerified !== true) {
         throw new WsException('User is not active or does not exist');
       }
+
 
       // Attach user to socket
       (client as AuthenticatedSocket).user = {
