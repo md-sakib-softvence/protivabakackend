@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, NotFoundException, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
@@ -7,11 +7,13 @@ import * as admin from 'firebase-admin';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
 import { PrismaService } from 'src/prisma/prisma.service';
 import axios from 'axios';
+import { PaymentFailDto } from './dto/payment.fail.dto';
+import { PaymentConfirmDto } from './dto/payment.confirm.dto';
 
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService, private readonly Prisma: PrismaService, @Inject('FIREBASE_MESSAGING')
-  private readonly messaging: admin.messaging.Messaging) { }
+    constructor(private readonly paymentService: PaymentService, private readonly Prisma: PrismaService, @Inject('FIREBASE_MESSAGING')
+    private readonly messaging: admin.messaging.Messaging) { }
 
 
     async sentNotification(userId: string, title: string, body: string) {
@@ -56,117 +58,162 @@ export class PaymentController {
         }
     }
 
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, UseGuards)
-  @Post('make-payment')
-  @ApiOperation({ summary: 'Make a payment' })
-  async makePayment(@Body() dto: CreatePaymentDto, @GetUser() user: any) {
-    const result = await this.paymentService.makePayment(user.id, dto);
-    return result;
-  }
-
-
-  @Post('/success')
-  @ApiExcludeEndpoint()
-  async paymentSuccess(@Body() body: any) {
-    const { tran_id, val_id } = body;
-
-    // Validate payment
-    const validationUrl = `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCOMMERZ_STORE_ID}&store_passwd=${process.env.SSLCOMMERZ_STORE_PASSWORD}&format=json`;
-
-    const response = await axios.get(validationUrl);
-
-    if (response.data.status === 'VALID') {
-      await this.Prisma.payment.update({
-        where: { transactionId: tran_id },
-        data: { status: 'COMPLETED' },
-      });
-
-      const findPayment = await this.Prisma.payment.findUnique({
-        where: { transactionId: tran_id },
-      });
-
-      if (!findPayment) throw new NotFoundException("Invalid paytment transaction");
-
-      await this.Prisma.booking.update({
-        where: { id: findPayment?.bookingId },
-        data: {
-          paymentStatus: "COMPLETED",
-          status: "IN_PROGRESS"
-        }
-      });
-
-      await this.Prisma.notification.create({
-        data: {
-          userId: findPayment.userId,
-          type: 'PAYMENT_SUCCESS',
-          title: 'Payment Successful',
-          message: `Your payment for booking ID ${findPayment.bookingId} has been successfully processed. Thank you for your payment!`,
-        },
-      });
-
-      await this.sentNotification(findPayment.userId, "Payment Successful", `Your payment has been successfully processed. Thank you for your payment!`);
-
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, UseGuards)
+    @Post('make-payment')
+    @ApiOperation({ summary: 'Make a payment' })
+    async makePayment(@Body() dto: CreatePaymentDto, @GetUser() user: any) {
+        const result = await this.paymentService.makePayment(user.id, dto);
+        return result;
     }
 
-    return { message: 'Payment success' };
-  }
+
+    @Post('/success')
+    @ApiExcludeEndpoint()
+    async paymentSuccess(@Body() body: any) {
+        const { tran_id, val_id } = body;
+
+        // Validate payment
+        const validationUrl = `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCOMMERZ_STORE_ID}&store_passwd=${process.env.SSLCOMMERZ_STORE_PASSWORD}&format=json`;
+
+        const response = await axios.get(validationUrl);
+
+        if (response.data.status === 'VALID') {
+            await this.Prisma.payment.update({
+                where: { transactionId: tran_id },
+                data: { status: 'COMPLETED' },
+            });
+
+            const findPayment = await this.Prisma.payment.findUnique({
+                where: { transactionId: tran_id },
+            });
+
+            if (!findPayment) throw new NotFoundException("Invalid paytment transaction");
+
+            await this.Prisma.booking.update({
+                where: { id: findPayment?.bookingId },
+                data: {
+                    paymentStatus: "COMPLETED",
+                    status: "IN_PROGRESS"
+                }
+            });
+
+            await this.Prisma.notification.create({
+                data: {
+                    userId: findPayment.userId,
+                    type: 'PAYMENT_SUCCESS',
+                    title: 'Payment Successful',
+                    message: `Your payment for booking ID ${findPayment.bookingId} has been successfully processed. Thank you for your payment!`,
+                },
+            });
+
+            await this.sentNotification(findPayment.userId, "Payment Successful", `Your payment has been successfully processed. Thank you for your payment!`);
+
+        }
+
+        return { message: 'Payment success' };
+    }
 
 
-  @Post('/fail')
-  @ApiExcludeEndpoint()
-  async paymentFail(@Body() body: any) {
-    const payment = await this.Prisma.payment.update({
-      where: { transactionId: body.tran_id },
-      data: { status: 'FAILED' },
-    });
+    @Post('/fail')
+    @ApiExcludeEndpoint()
+    async paymentFail(@Body() body: any) {
+        const payment = await this.Prisma.payment.update({
+            where: { transactionId: body.tran_id },
+            data: { status: 'FAILED' },
+        });
 
-    await this.Prisma.notification.create({
-      data: {
-        userId: payment.userId,
-        type: 'PAYMENT_FAILED',
-        title: 'Payment Failed',
-        message: `Your payment for booking ID ${payment.bookingId} has failed. Please try again or contact support if the issue persists.`,
-      },
-    });
+        await this.Prisma.notification.create({
+            data: {
+                userId: payment.userId,
+                type: 'PAYMENT_FAILED',
+                title: 'Payment Failed',
+                message: `Your payment for booking ID ${payment.bookingId} has failed. Please try again or contact support if the issue persists.`,
+            },
+        });
 
-    await this.sentNotification(payment.userId, "Payment Failed", `Your payment has failed. Please try again or contact support if the issue persists.`);
+        await this.sentNotification(payment.userId, "Payment Failed", `Your payment has failed. Please try again or contact support if the issue persists.`);
 
-    return { message: 'Payment failed' };
-  }
+        return { message: 'Payment failed' };
+    }
 
 
 
-  @Post('/cancel')
-  @ApiExcludeEndpoint()
-  async paymentCancel(@Body() body: any) {
-    const payment = await this.Prisma.payment.update({
-      where: { transactionId: body.tran_id },
-      data: { status: 'CANCELLED' },
-    });
+    @Post('/cancel')
+    @ApiExcludeEndpoint()
+    async paymentCancel(@Body() body: any) {
+        const payment = await this.Prisma.payment.update({
+            where: { transactionId: body.tran_id },
+            data: { status: 'CANCELLED' },
+        });
 
-    await this.Prisma.notification.create({
-      data: {
-        userId: payment.userId,
-        type: 'PAYMENT_CANCELLED',
-        title: 'Payment Cancelled',
-        message: `Your payment for booking ID ${payment.bookingId} has been cancelled. If this was a mistake, please try making the payment again.`,
-      },
-    });
+        await this.Prisma.notification.create({
+            data: {
+                userId: payment.userId,
+                type: 'PAYMENT_CANCELLED',
+                title: 'Payment Cancelled',
+                message: `Your payment for booking ID ${payment.bookingId} has been cancelled. If this was a mistake, please try making the payment again.`,
+            },
+        });
 
-    await this.sentNotification(payment.userId, "Payment Cancelled", `Your payment has been cancelled. If this was a mistake, please try making the payment again.`);
+        await this.sentNotification(payment.userId, "Payment Cancelled", `Your payment has been cancelled. If this was a mistake, please try making the payment again.`);
 
-    return { message: 'Payment cancelled' };
-  }
+        return { message: 'Payment cancelled' };
+    }
 
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
-  @Get("my-transactions")
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  async myPaymentTransactions(@GetUser() user: any, @Query('page') page = 1, @Query('limit') limit = 10) {
-    const result = await this.paymentService.myPaymentTransactions(user.id, page, limit);
-    return result;
-  }
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard)
+    @Get("my-transactions")
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    async myPaymentTransactions(@GetUser() user: any, @Query('page') page = 1, @Query('limit') limit = 10) {
+        const result = await this.paymentService.myPaymentTransactions(user.id, page, limit);
+        return result;
+    }
+
+
+
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard)
+    @Post('initiate-sdk')
+    @ApiOperation({ summary: 'Get configuration for Flutter SSLCommerz SDK' })
+    async initiateSdk(@Body() dto: CreatePaymentDto, @GetUser() user: any) {
+        return await this.paymentService.getSdkConfig(user.id, dto);
+    }
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard)
+    @Get('status/:tranId')
+    @ApiOperation({ summary: 'Check final payment status after SDK completion' })
+    async checkStatus(@Param('tranId') tranId: string) {
+        // This allows the Flutter app to confirm the status from YOUR DB 
+        // instead of trusting the SDK's local result.
+        const payment = await this.Prisma.payment.findUnique({
+            where: { transactionId: tranId }
+        });
+
+        if (!payment) throw new NotFoundException('Transaction not found');
+
+        return {
+            status: payment.status,
+            bookingId: payment.bookingId,
+            isPaid: payment.status === 'COMPLETED'
+        };
+    }
+
+
+    @Post('confirm')
+    confirm(@Body() body : PaymentConfirmDto) {
+        return this.paymentService.confirm(body);
+    }
+
+    @Post('payment-fail')
+    fail(@Body() body : PaymentFailDto) {
+        return this.paymentService.fail(body);
+    }
+
+    @Post('ipn')
+    ipn(@Body() body : PaymentConfirmDto) {
+        return this.paymentService.confirm(body);
+    }
 
 }

@@ -367,6 +367,9 @@ model Payment {
   currency        String         @default("BDT")
   gatewayTxnId    String?
   gatewayResponse Json?
+  valId           String?
+  bankTranId      String?
+  cardType        String?
   status          PaymentStatus  @default(PENDING)
   failureReason   String?
   metadata        Json?

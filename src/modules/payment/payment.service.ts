@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePaymentDto } from './dto/payment.dto';
 import axios from 'axios';
@@ -92,6 +92,120 @@ export class PaymentService {
 
         return result
 
+    };
+
+
+    async getSdkConfig(userId: string, createPaymentDto: CreatePaymentDto) {
+        const { bookingId, amount } = createPaymentDto;
+
+        const booking = await this.Prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { client: true }
+        });
+
+        if (!booking) throw new BadRequestException('Booking not found');
+
+        // Generate a unique transaction ID (Critical for tracking)
+        const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+        // 1. Create a pending payment record in your DB
+        const payment = await this.Prisma.payment.create({
+            data: {
+                transactionId,
+                bookingId,
+                userId,
+                amount,
+                status: 'PENDING',
+                gateway: 'SSLCOMMERZ',
+                currency: 'BDT',
+            },
+        });
+
+        // 2. Return the config the SDK needs
+        return {
+            success: true,
+            transactionId: transactionId,
+            amount: amount,
+            // SSLCommerz SDK specific config
+            storeId: process.env.SSLCOMMERZ_STORE_ID,
+            storePassword: process.env.SSLCOMMERZ_STORE_PASSWORD, // Note: Use secure obfuscation in Flutter
+            isSandbox: process.env.SSLCOMMERZ_IS_LIVE,
+
+            // Customer info for the SDK UI
+            customerName: booking.client?.firstName || 'Customer',
+            customerEmail: booking.client?.email || 'customer@example.com',
+            customerPhone: booking.contactPhone || '01700000000',
+            customerAddress: booking.locationAddress || 'Dhaka',
+        };
+    }
+
+    async confirm(body) {
+        const { val_id, tran_id } = body;
+
+        const payment = await this.Prisma.payment.findUnique({
+            where: { transactionId: tran_id },
+        });
+
+        if (!payment) throw new BadRequestException('Payment not found');
+
+        // SSL Verify API
+        const url = `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCZ_STORE_ID}&store_passwd=${process.env.SSLCZ_STORE_PASSWORD}&format=json`;
+
+        const { data } = await axios.get(url);
+
+        if (
+            data.status === 'VALID' ||
+            data.status === 'VALIDATED'
+        ) {
+            await this.Prisma.payment.update({
+                where: { id: payment.id },
+                data: {
+                    status: 'COMPLETED',
+                    valId: val_id,
+                    bankTranId: data.bank_tran_id,
+                    cardType: data.card_type,
+                    gatewayData: data,
+                },
+            });
+
+            await this.Prisma.booking.update({
+                where: { id: payment.bookingId },
+                data: {
+                    status: 'COMPLETED',
+                },
+            });
+
+            return {
+                paymentStatus: 'PAID',
+            };
+        }
+
+        throw new BadRequestException('Payment verification failed');
+    }
+
+    async fail(body) {
+        const { transactionId, reason, status } = body;
+
+        const payment = await this.Prisma.payment.findUnique({
+            where: { transactionId },
+        });
+
+        if (!payment) throw new BadRequestException();
+
+        await this.Prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+                status:
+                    status === 'CANCELLED'
+                        ? 'CANCELLED'
+                        : 'FAILED',
+            },
+        });
+
+        return {
+            success: true,
+            message: reason,
+        };
     }
 
 }
