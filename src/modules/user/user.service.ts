@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
 import { ERROR_MESSAGES } from 'src/common/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -113,7 +113,19 @@ export class UserService {
         };
     };
 
-    async providerVerificationStatusUpdate(providerId: string, status: "VERIFIED" | "REJECTED") {
+    async providerVerificationStatusUpdate(providerId: string, status: "VERIFIED" | "REJECTED", userId: string) {
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageProvider) throw new NotFoundException("You are not permited accesss this action");
+        }
+
         const result = await this.prisma.user.update({
             where: {
                 id: providerId,
@@ -121,10 +133,10 @@ export class UserService {
             },
             data: {
                 verificationStatus: status,
-                status : "ACTIVE",
-                emailVerified : true,
-                phoneVerified : true,
-                
+                status: "ACTIVE",
+                emailVerified: true,
+                phoneVerified: true,
+
             }
         });
 

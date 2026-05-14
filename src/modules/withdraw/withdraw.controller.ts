@@ -69,10 +69,11 @@ export class WithdrawController {
   })
   @ApiQuery({ name: "withdrawId", required: true })
   async approveWithdrawRequest(
-    @Query("withdrawId") id: string
+    @Query("withdrawId") id: string,
+    @GetUser('id') userId: string
   ) {
 
-    const result = await this.withdrawService.approveWithdrawRequest(id);
+    const result = await this.withdrawService.approveWithdrawRequest(id, userId);
 
     return {
       success: true,
@@ -91,10 +92,11 @@ export class WithdrawController {
   })
   @ApiQuery({ name: "withdrawId", required: true })
   async rejectWithdrawRequest(
-    @Query("withdrawId") id: string
+    @Query("withdrawId") id: string,
+    @GetUser('id') userId: string,
   ) {
 
-    const result = await this.withdrawService.approveWithdrawRequest(id);
+    const result = await this.withdrawService.rejectWithdrawRequest(id, userId);
 
     return {
       success: true,

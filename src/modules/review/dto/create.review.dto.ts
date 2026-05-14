@@ -1,4 +1,4 @@
-import { IsString, IsNumber, Min, Max, IsNotEmpty } from 'class-validator';
+import { IsString, IsNumber, Min, Max, IsNotEmpty, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -17,6 +17,11 @@ export class CreateReviewDto {
     @IsString()
     @IsNotEmpty()
     jobId!: string;
+
+    @ApiProperty({ example: "image", type: "string", format: "binary" })
+    @IsString()
+    @IsOptional()
+    image?: string;
 
     @ApiProperty({ example: 3 })
     @Type(() => Number)

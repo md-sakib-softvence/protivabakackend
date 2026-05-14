@@ -13,14 +13,25 @@ export class ReviewService {
 
         if (findReview) throw new NotFoundException("Already given review.");
 
+        const booking = await this.prisma.booking.findUnique({
+            where: { id: data.bookingId },
+        });
+
+        const findJob = await this.prisma.job.findUnique({ where: { id: data.jobId } });
+
+        if (!findJob) throw new NotFoundException("Job not found. Please give a valid review");
+
+        if (!booking) throw new Error("Invalid booking ID");
+
         const createReview = await this.prisma.review.create({
             data: {
                 senderId: sanderId,
                 bookingId: data.bookingId,
                 jobId: data.jobId,
                 receiverId: data.receiverId,
-                rating: data.rating,
-                comment: data.comment
+                rating: Number(data.rating),
+                comment: data.comment,
+                image: data.image
             }
         });
 

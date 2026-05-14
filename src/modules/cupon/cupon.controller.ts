@@ -9,7 +9,7 @@ import { SuperAdminGuard } from 'src/common/guards/admin.guard';
 @ApiTags('Cupon')
 @Controller('cupon')
 export class CuponController {
-  constructor(private readonly cuponService: CuponService) {}
+  constructor(private readonly cuponService: CuponService) { }
 
   @Post('create')
   @ApiBearerAuth()
@@ -42,6 +42,17 @@ export class CuponController {
     return {
       success: true,
       message: 'Coupon retrieved successfully',
+      data,
+    };
+  }
+
+  @Post('use/:code')
+  @ApiOperation({ summary: 'Use a coupon code (Increments usage count)' })
+  async use(@Param('code') code: string) {
+    const data = await this.cuponService.useCoupon(code);
+    return {
+      success: true,
+      message: 'Coupon used successfully',
       data,
     };
   }

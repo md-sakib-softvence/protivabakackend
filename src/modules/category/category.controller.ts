@@ -8,6 +8,7 @@ import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { SuperAdminGuard } from 'src/common/guards/admin.guard';
 import { UpdateCategoryDto } from './dto/update.category.dto';
+import { GetUser } from '../../common/decorators';
 
 @ApiTags("Category")
 @Controller('category')
@@ -16,7 +17,7 @@ export class CategoryController {
 
   @Post("create")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'image', maxCount: 1 },
@@ -43,6 +44,7 @@ export class CategoryController {
   })
   async createCategory(
     @Body() body: CreateCategoryDto,
+    @GetUser('id') userId: string,
     @UploadedFiles() files: { image?: Express.Multer.File[]; icon?: Express.Multer.File[] },
   ) {
     if (files.image?.[0]) {
@@ -63,14 +65,14 @@ export class CategoryController {
       body.icon = (uploadedIcon as any).secure_url;
     }
 
-    return this.categoryService.createCategory(body);
+    return this.categoryService.createCategory(body, userId);
   }
 
 
 
   @Patch(':ctg_id')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -100,6 +102,7 @@ export class CategoryController {
   async updateCategory(
     @Param('ctg_id') ctg_id: string,
     @Body() body: UpdateCategoryDto,
+    @GetUser('id') userId: string,
     @UploadedFiles()
     files?: { image?: Express.Multer.File[]; icon?: Express.Multer.File[] },
   ) {
@@ -134,7 +137,7 @@ export class CategoryController {
       updateBody.icon = uploadedIcon.secure_url;
     }
 
-    const data = await this.categoryService.updateCategory(ctg_id, updateBody);
+    const data = await this.categoryService.updateCategory(ctg_id, updateBody, userId);
 
     return {
       success: true,
