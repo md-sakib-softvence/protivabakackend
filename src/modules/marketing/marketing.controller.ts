@@ -7,13 +7,17 @@ import { UpdateMarketingDto } from './dto/update.marketing.dto';
 import { UpdateBannerStatusDto } from './dto/update.banner.status.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { SubAdminGuard } from 'src/common/guards/sub.admin.guard';
+import { GetUser } from '../../common/decorators';
+import strict from 'assert/strict';
 
 @Controller('marketing')
 export class MarketingController {
   constructor(private readonly marketingService: MarketingService) { }
 
-  // @ApiBearerAuth()
+
   @Post("create")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({
     summary: "Create marketing banner (Only Can Super Admin)"
   })
@@ -38,9 +42,10 @@ export class MarketingController {
   @UseInterceptors(FileInterceptor("image"))
   async createMerketingBanner(
     @UploadedFile() image: Express.Multer.File,
-    @Body() data: CreateMarketingDto
+    @Body() data: CreateMarketingDto,
+    @GetUser('id') userId: string,
   ) {
-    const result = await this.marketingService.createBanner(image, data);
+    const result = await this.marketingService.createBanner(image, data, userId);
 
     return {
       success: true,
@@ -51,6 +56,8 @@ export class MarketingController {
 
   // @ApiBearerAuth()
   @Put("update/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: "Update marketing banner (Only Can Super Admin)"
   })
@@ -76,9 +83,10 @@ export class MarketingController {
   async updateMarketingBanner(
     @Param("id") id: string,
     @UploadedFile() image: Express.Multer.File,
-    @Body() data: UpdateMarketingDto
+    @Body() data: UpdateMarketingDto,
+    @GetUser('id') userId: string,
   ) {
-    const result = await this.marketingService.updateBanner(id, image, data);
+    const result = await this.marketingService.updateBanner(id, image, data, userId);
 
     return {
       success: true,
@@ -89,13 +97,16 @@ export class MarketingController {
 
   // @ApiBearerAuth()
   @Patch("update-status/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Update marketing banner status (Only Can Super Admin)" })
   // @UseGuards(JwtAuthGuard, SubAdminGuard)
   async updateBannerStatus(
     @Param("id") id: string,
-    @Body() body: UpdateBannerStatusDto
+    @Body() body: UpdateBannerStatusDto,
+    @GetUser('id') userId: string,
   ) {
-    const updated = await this.marketingService.updateBannerStatus(id, body.status);
+    const updated = await this.marketingService.updateBannerStatus(id, body.status, userId);
 
     return {
       success: true,
@@ -106,11 +117,13 @@ export class MarketingController {
 
   // @ApiBearerAuth()
   @Delete("delete/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Delete marketing banner by ID (Only Can Super Admin)" })
   // @UseGuards(JwtAuthGuard, SubAdminGuard)
   @ApiParam({ name: "id", description: "Banner ID to delete", example: "ckl123abc456" })
-  async deleteBanner(@Param("id") id: string) {
-    const result = await this.marketingService.deleteBanner(id);
+  async deleteBanner(@Param("id") id: string, @GetUser('id') userId: string,) {
+    const result = await this.marketingService.deleteBanner(id, userId);
 
     return {
       success: true,

@@ -137,6 +137,7 @@ function setupSecurity(
   const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5173',
+    "http://localhost:5000",
     'https://protiva502.vercel.app',
     'https://admin.kaajbd.com.bd',
   ];

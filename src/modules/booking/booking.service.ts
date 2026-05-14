@@ -308,17 +308,23 @@ export class BookingService {
 
         if (booking.status === "COMPLETED") throw new BadRequestException("Booking already complite");
 
-        if (booking.clientId !== userId || booking.providerId !== userId) {
+        if (booking.clientId !== userId && booking.providerId !== userId) {
             throw new NotFoundException("You are not permited access this route");
         };
 
         if (status === "COMPLETED") {
-            await this.prisma.wallet.update({
+            await this.prisma.wallet.upsert({
                 where: {
                     userId: booking.providerId
                 },
-                data: {
-                    amount: booking.serviceAmount.toNumber()
+                update: {
+                    amount: {
+                        increment: Math.floor(Number(booking.serviceAmount))
+                    }
+                },
+                create: {
+                    userId: booking.providerId,
+                    amount: Math.floor(Number(booking.serviceAmount))
                 }
             })
         };

@@ -8,6 +8,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { SuperAdminGuard } from 'src/common/guards/admin.guard';
 import { UpdateSubCategoryDto } from './dto/update.sub.category.dto';
 import { memoryStorage } from 'multer';
+import { GetUser } from '../../common/decorators';
 
 
 @ApiTags("Sub Category")
@@ -17,7 +18,7 @@ export class SubCategoryController {
   constructor(private readonly subCategoryService: SubCategoryService, private readonly cloudinaryService: CloudinaryUploadService) { }
 
   @Post("create")
-  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'image', maxCount: 1 },
@@ -45,6 +46,7 @@ export class SubCategoryController {
   })
   async createSubCategory(
     @Body() body: CreateSubCategoryDto,
+    @GetUser('id') userId: string,
     @UploadedFiles()
     files: { image?: Express.Multer.File[]; icon?: Express.Multer.File[] },
   ) {
@@ -67,13 +69,13 @@ export class SubCategoryController {
       body.icon = uploadedIcon.secure_url;
     }
 
-    return this.subCategoryService.createSubCategory(body);
+    return this.subCategoryService.createSubCategory(body, userId);
   }
 
 
   @Patch(':sub_ctg_id')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -103,6 +105,7 @@ export class SubCategoryController {
   async updateSubCategory(
     @Param('sub_ctg_id') sub_ctg_id: string,
     @Body() body: UpdateSubCategoryDto,
+    @GetUser('id') userId: string,
     @UploadedFiles()
     files?: { image?: Express.Multer.File[]; icon?: Express.Multer.File[] },
   ) {
@@ -137,7 +140,7 @@ export class SubCategoryController {
       updateBody.icon = uploadedIcon.secure_url;
     }
 
-    const data = await this.subCategoryService.updateSubCategory(sub_ctg_id, updateBody);
+    const data = await this.subCategoryService.updateSubCategory(sub_ctg_id, updateBody, userId);
     return {
       success: true,
       data

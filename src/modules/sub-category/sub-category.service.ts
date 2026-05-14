@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateSubCategoryDto } from './dto/create.sub.category.dto';
 import { UpdateSubCategoryDto } from './dto/update.sub.category.dto';
@@ -43,7 +43,18 @@ export class SubCategoryService {
         return slug;
     }
 
-    async createSubCategory(data: CreateSubCategoryDto) {
+    async createSubCategory(data: CreateSubCategoryDto, userId: string) {
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageCategory) throw new NotFoundException("You are not permited accesss this action");
+        }
 
         const categoryExists = await this.prisma.category.findUnique({
             where: { id: data.categoryId },
@@ -73,7 +84,19 @@ export class SubCategoryService {
     }
 
 
-    async updateSubCategory(id: string, data: UpdateSubCategoryDto) {
+    async updateSubCategory(id: string, data: UpdateSubCategoryDto, userId: string) {
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageCategory) throw new NotFoundException("You are not permited accesss this action");
+        }
+
         const subCategory = await this.prisma.subCategory.findUnique({
             where: { id },
         });
@@ -120,7 +143,7 @@ export class SubCategoryService {
         const subCatgoris = await this.prisma.category.findMany({
             where: {
                 isActive: true,
-                isDelete : false
+                isDelete: false
             },
             skip,
             take: limit,
@@ -170,14 +193,14 @@ export class SubCategoryService {
         const totalService = await this.prisma.job.count({
             where: {
                 subCategoryId: subCategoryId,
-                isDelete : false
+                isDelete: false
             }
         })
 
         const service = await this.prisma.job.findMany({
             where: {
                 subCategoryId: subCategoryId,
-                isDelete : false
+                isDelete: false
             },
             take: limit,
             include: {

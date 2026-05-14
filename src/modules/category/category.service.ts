@@ -35,7 +35,20 @@ export class CategoryService {
         return slug;
     }
 
-    async createCategory(data: CreateCategoryDto) {
+    async createCategory(data: CreateCategoryDto, userId: string) {
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageCategory) throw new NotFoundException("You are not permited accesss this action");
+        }
+
+
         const slug = await this.generateUniqueSlug(data.name);
 
         return this.prisma.category.create({
@@ -50,7 +63,19 @@ export class CategoryService {
         });
     }
 
-    async updateCategory(id: string, data: UpdateCategoryDto) {
+    async updateCategory(id: string, data: UpdateCategoryDto, userId: string) {
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageCategory) throw new NotFoundException("You are not permited accesss this action");
+        }
+
         const category = await this.prisma.category.findUnique({
             where: { id },
         });
@@ -152,7 +177,7 @@ export class CategoryService {
             where: {
                 categoryId: categoryId,
                 isActive: true,
-                isDelete : false
+                isDelete: false
             },
             include: {
                 _count: {

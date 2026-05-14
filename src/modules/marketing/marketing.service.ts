@@ -10,7 +10,18 @@ export class MarketingService {
     constructor(private readonly prisma: PrismaService, private readonly CloudinaryUploadService: CloudinaryUploadService) { }
 
 
-    async createBanner(image: Express.Multer.File, data: CreateMarketingDto) {
+    async createBanner(image: Express.Multer.File, data: CreateMarketingDto, userId: string) {
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageWithdrawal) throw new NotFoundException("You are not permited accesss this action");
+        }
 
         const upload: any = await this.CloudinaryUploadService.uploadImageFromBuffer(image.buffer, "marketing", `marketing-${Math.random()}-${Date.now()}`)
 
@@ -26,7 +37,20 @@ export class MarketingService {
     };
 
 
-    async updateBanner(id: string, image: Express.Multer.File, data: UpdateMarketingDto) {
+    async updateBanner(id: string, image: Express.Multer.File, data: UpdateMarketingDto, userId: string) {
+
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageWithdrawal) throw new NotFoundException("You are not permited accesss this action");
+        }
+
         const existing = await this.prisma.marketing.findUnique({
             where: { id }
         });
@@ -65,7 +89,20 @@ export class MarketingService {
         return updated;
     }
 
-    async updateBannerStatus(id: string, status: BannerStatus) {
+    async updateBannerStatus(id: string, status: BannerStatus, userId: string) {
+
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageWithdrawal) throw new NotFoundException("You are not permited accesss this action");
+        }
+
         const banner = await this.prisma.marketing.findUnique({ where: { id: id } });
 
         if (!banner) throw new NotFoundException("Banner not found");
@@ -82,7 +119,19 @@ export class MarketingService {
     };
 
 
-    async deleteBanner(id: string) {
+    async deleteBanner(id: string, userId: string) {
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageWithdrawal) throw new NotFoundException("You are not permited accesss this action");
+        }
+
         const find = await this.prisma.marketing.findUnique({
             where: {
                 id: id

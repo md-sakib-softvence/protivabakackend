@@ -78,8 +78,8 @@ export class UserController {
     summary: "Provider Verification Successfully (Only Can Admin)"
   })
   @ApiQuery({ name: "providerId" })
-  async updateProviderVerificationStatus(@Query("providerId") userId: string) {
-    const result = await this.userService.providerVerificationStatusUpdate(userId, "VERIFIED");
+  async updateProviderVerificationStatus(@Query("providerId") userId: string, @GetUser('id') adminId: string,) {
+    const result = await this.userService.providerVerificationStatusUpdate(userId, "VERIFIED", adminId);
 
     return {
       success: true,
@@ -97,8 +97,8 @@ export class UserController {
     summary: "Provider rejected successfully (Only Can Admin)"
   })
   @ApiQuery({ name: "providerId" })
-  async rejectProvider(@Query("providerId") userId: string) {
-    const result = await this.userService.providerVerificationStatusUpdate(userId, "REJECTED");
+  async rejectProvider(@Query("providerId") userId: string, @GetUser('id') adminId: string,) {
+    const result = await this.userService.providerVerificationStatusUpdate(userId, "REJECTED", adminId);
 
     return {
       success: true,

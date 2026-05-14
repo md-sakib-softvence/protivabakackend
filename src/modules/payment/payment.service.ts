@@ -1,12 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePaymentDto } from './dto/payment.dto';
 import axios from 'axios';
 const qs = require('querystring');
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class PaymentService {
-    constructor(private readonly Prisma: PrismaService) { }
+    constructor(private readonly Prisma: PrismaService, @Inject('FIREBASE_MESSAGING') private readonly messaging: admin.messaging.Messaging) { }
 
     async makePayment(userId: string, createPaymentDto: CreatePaymentDto) {
         const { bookingId, amount } = createPaymentDto;
@@ -129,7 +130,7 @@ export class PaymentService {
             // SSLCommerz SDK specific config
             storeId: process.env.SSLCOMMERZ_STORE_ID,
             storePassword: process.env.SSLCOMMERZ_STORE_PASSWORD, // Note: Use secure obfuscation in Flutter
-            isSandbox: process.env.SSLCOMMERZ_IS_LIVE,
+            isSandbox: true,
 
             // Customer info for the SDK UI
             customerName: booking.client?.firstName || 'Customer',
@@ -149,9 +150,11 @@ export class PaymentService {
         if (!payment) throw new BadRequestException('Payment not found');
 
         // SSL Verify API
-        const url = `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCZ_STORE_ID}&store_passwd=${process.env.SSLCZ_STORE_PASSWORD}&format=json`;
-
+        // const url = `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCZ_STORE_ID}&store_passwd=${process.env.SSLCZ_STORE_PASSWORD}&format=json`;
+        const url = `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCOMMERZ_STORE_ID}&store_passwd=${process.env.SSLCOMMERZ_STORE_PASSWORD}&format=json`;
         const { data } = await axios.get(url);
+
+        console.log('SSL VERIFY RESPONSE =>', data);
 
         if (
             data.status === 'VALID' ||
@@ -165,8 +168,26 @@ export class PaymentService {
                     bankTranId: data.bank_tran_id,
                     cardType: data.card_type,
                     gatewayData: data,
+                    gatewayResponse: data,
                 },
             });
+
+            const booking = await this.Prisma.booking.findUnique({
+                where: { id: payment.bookingId },
+            });
+
+            if (booking) {
+                await this.Prisma.wallet.upsert({
+                    where: { userId: booking.providerId },
+                    update: {
+                        amount: { increment: Math.floor(Number(booking.serviceAmount)) },
+                    },
+                    create: {
+                        userId: booking.providerId,
+                        amount: Math.floor(Number(booking.serviceAmount)),
+                    },
+                });
+            }
 
             await this.Prisma.booking.update({
                 where: { id: payment.bookingId },

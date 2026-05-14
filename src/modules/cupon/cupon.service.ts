@@ -1,11 +1,11 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateCuponDto } from './dto/create.cupon.dto';
 import { UpdateCuponDto } from './dto/update.cupon.dto';
 
 @Injectable()
 export class CuponService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createCuponDto: CreateCuponDto) {
     const existingCoupon = await this.prisma.coupon.findUnique({
@@ -17,7 +17,10 @@ export class CuponService {
     }
 
     return this.prisma.coupon.create({
-      data: createCuponDto,
+      data: {
+        ...createCuponDto,
+        currentUselimit: createCuponDto.currentUselimit || 0,
+      },
     });
   }
 
@@ -37,6 +40,52 @@ export class CuponService {
     }
 
     return coupon;
+  }
+
+  /**
+   * Validate a coupon by code (Check expiry, activity, and usage limits)
+   */
+  async validateCoupon(couponCode: string) {
+    const coupon = await this.prisma.coupon.findUnique({
+      where: { couponCode },
+    });
+
+    if (!coupon) {
+      throw new NotFoundException('Invalid coupon code');
+    }
+
+    if (!coupon.isActive) {
+      throw new BadRequestException('Coupon is currently inactive');
+    }
+
+    // Check expiry
+    if (new Date() > new Date(coupon.expireAt)) {
+      throw new BadRequestException('This coupon has expired');
+    }
+
+    // Check usage limit (if totalUselimit is 0, we treat it as unlimited or handle accordingly)
+    // If you want 0 to mean unlimited, keep the check:
+    if (coupon.totalUselimit > 0 && coupon.currentUselimit >= coupon.totalUselimit) {
+      throw new BadRequestException('Coupon usage limit has been reached');
+    }
+
+    return coupon;
+  }
+
+  /**
+   * Use a coupon (Increment usage count)
+   */
+  async useCoupon(couponCode: string) {
+    const coupon = await this.validateCoupon(couponCode);
+
+    return this.prisma.coupon.update({
+      where: { id: coupon.id },
+      data: {
+        currentUselimit: {
+          increment: 1,
+        },
+      },
+    });
   }
 
   async update(id: string, updateCuponDto: UpdateCuponDto) {

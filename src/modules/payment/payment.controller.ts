@@ -202,17 +202,17 @@ export class PaymentController {
 
 
     @Post('confirm')
-    confirm(@Body() body : PaymentConfirmDto) {
+    confirm(@Body() body: PaymentConfirmDto) {
         return this.paymentService.confirm(body);
     }
 
     @Post('payment-fail')
-    fail(@Body() body : PaymentFailDto) {
+    fail(@Body() body: PaymentFailDto) {
         return this.paymentService.fail(body);
     }
 
     @Post('ipn')
-    ipn(@Body() body : PaymentConfirmDto) {
+    ipn(@Body() body: PaymentConfirmDto) {
         return this.paymentService.confirm(body);
     }
 
