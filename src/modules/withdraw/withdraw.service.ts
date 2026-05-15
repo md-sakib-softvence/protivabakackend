@@ -194,6 +194,17 @@ export class WithdrawService {
             }
         });
 
+        await this.prisma.wallet.update({
+            where: {
+                userId: result.userId
+            },
+            data: {
+                amount: {
+                    decrement: Number(ckeck.amount)
+                }
+            }
+        });
+
         await this.prisma.notification.create({
             data: {
                 userId: result.userId,
@@ -275,16 +286,6 @@ export class WithdrawService {
             })
         }
 
-        // const totalWithdraeAbleAmount = await this.prisma.booking.aggregate({
-        //     where: {
-        //         status: "COMPLETED",
-        //         providerId: providerId
-        //     },
-        //     _sum: {
-        //         serviceAmount: true
-        //     }
-        // });
-
 
         const avarageRating = await this.prisma.review.aggregate({
             where: {
@@ -298,15 +299,14 @@ export class WithdrawService {
         const totalReview = await this.prisma.review.count({ where: { receiverId: providerId } });
 
 
-        const totalPendingAmount = await this.prisma.booking.aggregate({
+
+        const totalPendingAmount = await this.prisma.withdrawal.aggregate({
             where: {
-                providerId: providerId,
-                status: {
-                    in: ['IN_PROGRESS', "ACCEPTED"]
-                }
+                userId: providerId,
+                status: "PENDING"
             },
             _sum: {
-                serviceAmount: true
+                amount: true
             }
         })
 
@@ -339,9 +339,9 @@ export class WithdrawService {
             withdraw: {
                 totalWithdraeAbleAmount: wallet || 0,
                 totalWithdrawAmount: totalWithdrawAmount._sum.amount || 0,
-                totalPendingAmount: totalPendingAmount._sum.serviceAmount || 0
+                totalPendingAmount: totalPendingAmount._sum.amount || 0
             },
-            review : {
+            review: {
                 averageRating: avarageRating._avg.rating || 0,
                 totalReview
             },
