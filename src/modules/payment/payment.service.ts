@@ -177,7 +177,7 @@ export class PaymentService {
                 where: { id: payment.bookingId },
             });
 
-            const commissionPercent = 10;
+            const commissionPercent = Number(process.env.COMMISSIONPERCENT) || 5;
 
             const amountCalculation =
                 amount - (amount * commissionPercent) / 100;
