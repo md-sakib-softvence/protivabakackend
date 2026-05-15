@@ -341,6 +341,10 @@ export class WithdrawService {
                 totalWithdrawAmount: totalWithdrawAmount._sum.amount || 0,
                 totalPendingAmount: totalPendingAmount._sum.serviceAmount || 0
             },
+            review : {
+                averageRating: avarageRating._avg.rating || 0,
+                totalReview
+            },
             booking: {
                 totalBooking,
                 totalBookingServed

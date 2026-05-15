@@ -4,6 +4,7 @@ import { CreatePaymentDto } from './dto/payment.dto';
 import axios from 'axios';
 const qs = require('querystring');
 import * as admin from 'firebase-admin';
+import { PaymentConfirmDto } from './dto/payment.confirm.dto';
 
 @Injectable()
 export class PaymentService {
@@ -140,8 +141,8 @@ export class PaymentService {
         };
     }
 
-    async confirm(body) {
-        const { val_id, tran_id } = body;
+    async confirm(body: PaymentConfirmDto) {
+        const { val_id, tran_id, amount } = body;
 
         const payment = await this.Prisma.payment.findUnique({
             where: { transactionId: tran_id },
@@ -176,15 +177,20 @@ export class PaymentService {
                 where: { id: payment.bookingId },
             });
 
+            const commissionPercent = 10;
+
+            const amountCalculation =
+                amount - (amount * commissionPercent) / 100;
+
             if (booking) {
                 await this.Prisma.wallet.upsert({
                     where: { userId: booking.providerId },
                     update: {
-                        amount: { increment: Math.floor(Number(booking.serviceAmount)) },
+                        amount: { increment: Math.floor(Number(amountCalculation)) },
                     },
                     create: {
                         userId: booking.providerId,
-                        amount: Math.floor(Number(booking.serviceAmount)),
+                        amount: Math.floor(Number(amountCalculation)),
                     },
                 });
             }

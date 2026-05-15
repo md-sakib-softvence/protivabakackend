@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class PaymentConfirmDto {
     @ApiProperty({
@@ -17,4 +17,12 @@ export class PaymentConfirmDto {
     @IsString()
     @IsOptional()
     tran_id?: string;
+
+    @ApiProperty({
+        description: 'The amount of the payment',
+        example: 100,
+    })
+    @IsNumber()
+    @IsNotEmpty()
+    amount: number;
 }
