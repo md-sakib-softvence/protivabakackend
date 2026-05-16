@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
 import { ERROR_MESSAGES } from 'src/common/constants';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -357,6 +357,37 @@ export class UserService {
                 totalPage: Math.ceil(total / limit),
             },
         };
+    }
+
+    async deleteSubAdminPermanent(adminUserId: string, subAdminId: string) {
+        const adminUser = await this.prisma.user.findUnique({
+            where: { id: adminUserId },
+            select: { role: true }
+        });
+
+        if (!adminUser || adminUser.role !== 'SUPER_ADMIN') {
+            throw new ForbiddenException("Only Super Admin can perform this action");
+        }
+
+        const subAdmin = await this.prisma.user.findUnique({
+            where: { id: subAdminId },
+            select: { role: true }
+        });
+
+        if (!subAdmin) {
+            throw new NotFoundException("Sub-admin not found");
+        }
+
+        if (subAdmin.role !== 'SUB_ADMIN') {
+            throw new BadRequestException("The user to delete is not a sub-admin");
+        }
+
+        // Permanent delete - this will cascade to notifications, permissions, etc.
+        const result = await this.prisma.user.delete({
+            where: { id: subAdminId }
+        });
+
+        return result;
     }
 
 }

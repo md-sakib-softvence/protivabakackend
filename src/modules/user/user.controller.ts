@@ -1,10 +1,11 @@
-import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Patch, Query, UseGuards } from '@nestjs/common';
+import { Controller, DefaultValuePipe, Delete, Get, Param, ParseIntPipe, Patch, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt.auth.guard';
 import { UserStatus } from '@prisma/client';
 import { GetUser } from 'src/common/decorators';
 import { SubAdminGuard } from 'src/common/guards/sub.admin.guard';
+import { SuperAdminGuard } from 'src/common/guards/admin.guard';
 
 @Controller('user')
 export class UserController {
@@ -166,4 +167,19 @@ export class UserController {
     };
   };
 
+  @Delete("permanent-delete-sub-admin/:id")
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @ApiOperation({
+    summary: "Permanently delete a sub-admin (Only Super Admin)"
+  })
+  async deleteSubAdminPermanent(@GetUser("id") adminUserId: string, @Param("id") subAdminId: string) {
+    const result = await this.userService.deleteSubAdminPermanent(adminUserId, subAdminId);
+
+    return {
+      success: true,
+      message: "Sub-admin and all related data deleted permanently",
+      data: result
+    };
+  }
 }
