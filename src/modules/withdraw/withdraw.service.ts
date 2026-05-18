@@ -163,7 +163,19 @@ export class WithdrawService {
 
     }
 
-    async approveWithdrawRequest(withdrawId: string) {
+    async approveWithdrawRequest(withdrawId: string, userId: string) {
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageWithdrawal) throw new NotFoundException("You are not permited accesss this action");
+        }
+
 
         const ckeck = await this.prisma.withdrawal.findUnique({
             where: {
@@ -182,6 +194,17 @@ export class WithdrawService {
             }
         });
 
+        await this.prisma.wallet.update({
+            where: {
+                userId: result.userId
+            },
+            data: {
+                amount: {
+                    decrement: Number(ckeck.amount)
+                }
+            }
+        });
+
         await this.prisma.notification.create({
             data: {
                 userId: result.userId,
@@ -197,7 +220,19 @@ export class WithdrawService {
 
     }
 
-    async rejectWithdrawRequest(withdrawId: string) {
+    async rejectWithdrawRequest(withdrawId: string, userId: string) {
+
+
+        const findSubAdmin = await this.prisma.user.findUnique({ where: { id: userId }, include: { adminPermissions: true } });
+
+
+        if (!findSubAdmin) throw new NotFoundException("User not valid");
+
+        if (findSubAdmin.role == "CLIENT" || findSubAdmin.role == "PROVIDER") throw new BadRequestException("You are not permited access this route");
+
+        if (findSubAdmin.role == "SUB_ADMIN") {
+            if (!findSubAdmin.adminPermissions?.isManageWithdrawal) throw new NotFoundException("You are not permited accesss this action");
+        }
 
         const ckeck = await this.prisma.withdrawal.findUnique({
             where: {
@@ -234,6 +269,8 @@ export class WithdrawService {
 
 
 
+
+
         let wallet = await this.prisma.wallet.findUnique({
             where: {
                 userId: providerId
@@ -249,25 +286,27 @@ export class WithdrawService {
             })
         }
 
-        // const totalWithdraeAbleAmount = await this.prisma.booking.aggregate({
-        //     where: {
-        //         status: "COMPLETED",
-        //         providerId: providerId
-        //     },
-        //     _sum: {
-        //         serviceAmount: true
-        //     }
-        // });
 
-        const totalPendingAmount = await this.prisma.booking.aggregate({
+        const avarageRating = await this.prisma.review.aggregate({
             where: {
-                providerId: providerId,
-                status: {
-                    in: ['IN_PROGRESS', "ACCEPTED"]
-                }
+                receiverId: providerId
+            },
+            _avg: {
+                rating: true
+            }
+        });
+
+        const totalReview = await this.prisma.review.count({ where: { receiverId: providerId } });
+
+
+
+        const totalPendingAmount = await this.prisma.withdrawal.aggregate({
+            where: {
+                userId: providerId,
+                status: "PENDING"
             },
             _sum: {
-                serviceAmount: true
+                amount: true
             }
         })
 
@@ -300,7 +339,11 @@ export class WithdrawService {
             withdraw: {
                 totalWithdraeAbleAmount: wallet || 0,
                 totalWithdrawAmount: totalWithdrawAmount._sum.amount || 0,
-                totalPendingAmount: totalPendingAmount._sum.serviceAmount || 0
+                totalPendingAmount: totalPendingAmount._sum.amount || 0
+            },
+            review: {
+                averageRating: avarageRating._avg.rating || 0,
+                totalReview
             },
             booking: {
                 totalBooking,
