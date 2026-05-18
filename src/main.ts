@@ -144,10 +144,11 @@ function setupSecurity(
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || nodeEnv !== 'production') {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        console.error(`Blocked CORS for origin: ${origin}`);
+        callback(new Error(`Not allowed by CORS: ${origin}`));
       }
     },
     credentials: true,
@@ -366,7 +367,7 @@ export async function bootstrap() {
 
   const shutdown = async () => {
     server.close(() => process.exit(0));
-    setTimeout(() => process.exit(1), 30000);
+    setTimeout(() => process.exit(1), 3000);
   };
 
   process.on('SIGINT', shutdown);

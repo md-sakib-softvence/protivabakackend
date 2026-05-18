@@ -177,20 +177,15 @@ export class PaymentService {
                 where: { id: payment.bookingId },
             });
 
-            const commissionPercent = await this.Prisma.systemSetting.findUnique({where : {key : "platform_fee"}});
-
-            const amountCalculation =
-                amount - (amount * (commissionPercent?.value ? commissionPercent.value : 0)) / 100;
-
             if (booking) {
                 await this.Prisma.wallet.upsert({
                     where: { userId: booking.providerId },
                     update: {
-                        amount: { increment: Math.floor(Number(amountCalculation)) },
+                        amount: amount,
                     },
                     create: {
                         userId: booking.providerId,
-                        amount: Math.floor(Number(amountCalculation)),
+                        amount: amount,
                     },
                 });
             }

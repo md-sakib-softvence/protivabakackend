@@ -12,8 +12,8 @@ export class SystemSettingController {
 
   @Get('all')
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, SuperAdminGuard)
-  @ApiOperation({ summary: 'Find Platform fee setting (Only Super Admin)' })
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Find Platform fee setting' })
   async getAllSettings() {
     const data = await this.systemSettingService.getAllSettings();
     return {

@@ -14,18 +14,18 @@ export class CreateMarketingDto {
 
     @ApiProperty({ description: "https://link.pro.fake.com", example: "https://link.pro.fake.com" })
     @IsString()
-    @IsNotEmpty()
+    @IsOptional()
     link?: string;
 
     @ApiProperty({ description: "Start date in ISO format (YYYY-MM-DD)", example: "2026-03-25T10:30:00Z" })
     @IsString()
-    @IsNotEmpty()
+    @IsOptional()
     startDate?: string;
 
 
     @ApiProperty({ description: "End date in ISO format (YYYY-MM-DD)", example: "2026-03-25T10:30:00Z" })
     @IsString()
-    @IsNotEmpty()
+    @IsOptional()
     endDate?: string
 }
 
