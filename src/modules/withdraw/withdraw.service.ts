@@ -181,7 +181,7 @@ export class WithdrawService {
             where: {
                 id: withdrawId
             }
-        })
+        });
 
         if (!ckeck) throw new NotFoundException(ERROR_MESSAGES.RECORD_NOT_FOUND)
 
@@ -214,7 +214,7 @@ export class WithdrawService {
             }
         });
 
-        await this.sentNotification(result.userId, "You Withdraw request approved", `Your withdrawal request ${ckeck.amount} has been approved. We are currently processing your transaction, and the amount will be credited to your account shortly. Thank you for your patience.`)
+        await this.sentNotification(result.userId, "You Withdraw request approved", `Your withdrawal request ${ckeck.amount} has been approved. We are currently processing your transaction, and the amount will be credited to your account shortly. Thank you for your patience.`);
 
         return result
 
@@ -371,24 +371,53 @@ export class WithdrawService {
         if (wallet.userId !== userId) throw new BadRequestException("You are not permitted to access this route");
         if (wallet.amount < data.amount) throw new BadRequestException(`Insufficient balance. Your wallet has ${wallet.amount}, but you tried to withdraw ${data.amount}.`);
 
+        const platformCommison = await this.prisma.systemSetting.findUnique({
+            where: { key: "platform_fee" },
+        });
+
+        const commissionPercent = Number(platformCommison?.value || 0);
+
+        const commissionAmount =
+            (data.amount * commissionPercent) / 100;
+
+        const netAmount = data.amount - commissionAmount;
+
+        const fee = data.amount - netAmount;
+
         const requestWithdraw = await this.prisma.withdrawal.create({
             data: {
                 userId: userId,
                 bankType: "CARD_PAYMENT",
-                ...data
+                amount: data.amount,
+                netAmount: netAmount,
+                fee: fee,
+                accountHolderName: data.accountHolderName,
+                accountNumber: data.accountNumber,
+                bankName: data.bankName,
+                branchName: data.branchName
             }
         });
+        const notificationMessage = `
+Withdrawal Request Submitted Successfully.
+
+Requested Amount: ${data.amount} BDT
+Platform Fee (${commissionPercent}%): ${fee} BDT
+You Will Receive: ${netAmount} BDT
+
+Your withdrawal request is now pending for approval.
+`;
 
         await this.prisma.notification.create({
             data: {
                 userId,
                 type: 'WITHDRAW_REQUEST',
                 title: 'Withdraw Request Submitted',
-                message: `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`,
+                message: notificationMessage,
             }
         });
 
-        await this.sentNotification(userId, "Withdraw Request Submitted", `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`);
+        await this.sentNotification(userId, "Withdraw Request Submitted", notificationMessage);
+        // await this.sentNotification(userId, "Withdraw Request Submitted", `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`);
 
         return requestWithdraw;
 
@@ -416,14 +445,42 @@ export class WithdrawService {
         if (wallet.userId !== userId) throw new BadRequestException("You are not permitted to access this route");
         if (wallet.amount < data.amount) throw new BadRequestException(`Insufficient balance. Your wallet has ${wallet.amount}, but you tried to withdraw ${data.amount}.`);
 
+        const platformCommison = await this.prisma.systemSetting.findUnique({
+            where: { key: "platform_fee" },
+        });
+
+        const commissionPercent = Number(platformCommison?.value || 0);
+
+        const commissionAmount =
+            (data.amount * commissionPercent) / 100;
+
+        const netAmount = data.amount - commissionAmount;
+
+        const fee = data.amount - netAmount;
+
 
         const requestWithdraw = await this.prisma.withdrawal.create({
             data: {
                 userId: userId,
                 bankType: "MOBILE_BANKING",
-                ...data
+                amount: data.amount,
+                netAmount: netAmount,
+                fee: fee,
+                mobileBankingPaymentTakeNumber: data.mobileBankingPaymentTakeNumber,
+                mobileBankingType: data.mobileBankingType,
+                phoneNumber: data.phoneNumber
             }
         });
+
+        const notificationMessage = `
+Withdrawal Request Submitted Successfully.
+
+Requested Amount: ${data.amount} BDT
+Platform Fee (${commissionPercent}%): ${fee} BDT
+You Will Receive: ${netAmount} BDT
+
+Your withdrawal request is now pending for approval.
+`;
 
 
         await this.prisma.notification.create({
@@ -431,12 +488,13 @@ export class WithdrawService {
                 userId,
                 type: 'WITHDRAW_REQUEST',
                 title: 'Withdraw Request Submitted',
-                message: `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`,
+                message: notificationMessage
             }
         });
 
 
-        await this.sentNotification(userId, "Withdraw Request Submitted", `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`);
+        // await this.sentNotification(userId, "Withdraw Request Submitted", `Your withdraw request of amount ${data.amount} has been submitted successfully. Our team will review your request and process it shortly. You can check the status of your withdraw request in the "My Withdrawals" section of your account.`);
+        await this.sentNotification(userId, "Withdraw Request Submitted", notificationMessage);
 
         return requestWithdraw;
 
