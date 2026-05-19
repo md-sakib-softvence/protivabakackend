@@ -9,5 +9,5 @@ export class UpdateBannerStatusDto {
     example: BannerStatus.ACTIVE 
   })
   @IsEnum(BannerStatus, { message: "Status must be one of DRAFT, ACTIVE, INACTIVE" })
-  status: BannerStatus;
+  status!: BannerStatus;
 }

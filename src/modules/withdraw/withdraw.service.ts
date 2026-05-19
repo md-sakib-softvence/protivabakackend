@@ -268,9 +268,6 @@ export class WithdrawService {
     async providerWallet(providerId: string) {
 
 
-
-
-
         let wallet = await this.prisma.wallet.findUnique({
             where: {
                 userId: providerId
@@ -397,7 +394,6 @@ export class WithdrawService {
 
     };
 
-
     async makeIBankingWithdrawRequest(userId: string, data: MakeWithdrawRequestMobileBankingDto) {
 
         const user = await this.prisma.user.findUnique({
@@ -445,5 +441,4 @@ export class WithdrawService {
         return requestWithdraw;
 
     }
-
 }

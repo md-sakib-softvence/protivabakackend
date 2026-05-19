@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePaymentDto } from './dto/payment.dto';
 import axios from 'axios';
@@ -177,20 +177,15 @@ export class PaymentService {
                 where: { id: payment.bookingId },
             });
 
-            const commissionPercent = Number(process.env.COMMISSIONPERCENT) || 0;
-
-            const amountCalculation =
-                amount - (amount * commissionPercent) / 100;
-
             if (booking) {
                 await this.Prisma.wallet.upsert({
                     where: { userId: booking.providerId },
                     update: {
-                        amount: { increment: Math.floor(Number(amountCalculation)) },
+                        amount: amount,
                     },
                     create: {
                         userId: booking.providerId,
-                        amount: Math.floor(Number(amountCalculation)),
+                        amount: amount,
                     },
                 });
             }

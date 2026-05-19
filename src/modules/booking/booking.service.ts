@@ -10,7 +10,7 @@ export class BookingService {
     constructor(private readonly prisma: PrismaService, @Inject('FIREBASE_MESSAGING') private readonly messaging: admin.messaging.Messaging
     ) { }
 
-      async sentNotification(userId: string, title: string, body: string) {
+    async sentNotification(userId: string, title: string, body: string) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId }
         });

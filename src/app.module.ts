@@ -28,6 +28,7 @@ import { FirebaseModule } from './modules/pushNotification/firebase.push.notific
 import { NotificationModule } from './modules/notification/notification.module';
 import { PolicyModule } from './modules/policy/policy.module';
 import { CuponModule } from './modules/cupon/cupon.module';
+import { SystemSettingModule } from './modules/system-setting/system-setting.module';
 
 @Module({
   imports: [
@@ -75,7 +76,8 @@ import { CuponModule } from './modules/cupon/cupon.module';
     FirebaseModule,
     NotificationModule,
     PolicyModule,
-    CuponModule
+    CuponModule,
+    SystemSettingModule
   ],
 
   controllers: [AppController],

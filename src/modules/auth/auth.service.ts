@@ -47,7 +47,7 @@ export class AuthService {
     @Inject('FIREBASE_MESSAGING')
     private readonly messaging: admin.messaging.Messaging,
     private readonly cloudinary: CloudinaryUploadService,
-  ) {}
+  ) { }
 
   // async sentNotification(userId: string, title: string, body: string) {
   //     const user = await this.prisma.user.findUnique(
@@ -354,10 +354,10 @@ export class AuthService {
 
     const avatarUpload: any = avatar
       ? await this.cloudinary.uploadImageFromBuffer(
-          avatar.buffer,
-          'avatar',
-          `${Date.now()}-${avatar.originalname}`,
-        )
+        avatar.buffer,
+        'avatar',
+        `${Date.now()}-${avatar.originalname}`,
+      )
       : null;
 
     const user = await this.prisma.user.create({
@@ -831,6 +831,15 @@ export class AuthService {
         verificationStatus: adminUser.verificationStatus,
       },
     };
+  }
+
+  async deleteSubAdmin(subAdminId: string) {
+    const result = await this.prisma.user.delete({
+      where: {
+        id: subAdminId,
+        role: "SUB_ADMIN"
+      }
+    });
   }
 
   async getSubAdminProfile(userId: string) {

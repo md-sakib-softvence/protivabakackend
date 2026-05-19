@@ -43,11 +43,11 @@ export class EmailService {
   }
 
   async sendVerificationEmail(to: string, otp: string, firstName: string): Promise<void> {
-    const subject = 'Your Protiva Verification Code';
+    const subject = 'Your Verification Code';
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #4F46E5;">Welcome to Protiva, ${firstName}!</h2>
+        <h2 style="color: #4F46E5;">Welcome to kajBD, ${firstName}!</h2>
         <p>Your one-time verification code is:</p>
         <h1 style="color: #4F46E5; font-size: 42px; letter-spacing: 10px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px;">
           ${otp}
@@ -55,7 +55,7 @@ export class EmailService {
         <p>This code will expire in <strong>2 minutes</strong>.</p>
         <p style="color: #666;">If you did not request this code, please ignore this email.</p>
         <hr style="margin: 30px 0;">
-        <p style="font-size: 12px; color: #888;">Protiva - Service Marketplace</p>
+        <p style="font-size: 12px; color: #888;">kajBD - Service Marketplace</p>
       </div>
     `;
 
@@ -64,7 +64,7 @@ export class EmailService {
       const env = this.configService.get<IEnv>('env', { infer: true })!;
 
       await this.transporter.sendMail({
-        from: `"${env.EMAIL_FROM_NAME || 'Protiva'}" <${env.EMAIL_FROM}>`,
+        from: `"${env.EMAIL_FROM_NAME || 'kajBD'}" <${env.EMAIL_FROM}>`,
         to,
         subject,
         html,
