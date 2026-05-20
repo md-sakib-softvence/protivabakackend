@@ -31,16 +31,34 @@ export class MarketingService {
 
         if (!upload) throw new BadRequestException("Image upload faild")
 
+        const createData: any = {
+            image: upload.secure_url,
+        };
+
+        if (data.title && data.title.trim() !== '') {
+            createData.title = data.title;
+        }
+
+        if (data.description && data.description.trim() !== '') {
+            createData.description = data.description;
+        }
+
+        if (data.link && data.link.trim() !== '') {
+            createData.link = data.link;
+        }
+
+        if (data.startDate && data.startDate.trim() !== '') {
+            createData.startDate = new Date(data.startDate);
+        }
+
+        if (data.endDate && data.endDate.trim() !== '') {
+            createData.endDate = new Date(data.endDate);
+        }
+
         const create = await this.prisma.marketing.create({
-            data: {
-                image: upload.secure_url,
-                title: data.title && data.title.trim() !== '' ? data.title : null,
-                description: data.description && data.description.trim() !== '' ? data.description : null,
-                link: data.link && data.link.trim() !== '' ? data.link : null,
-                startDate: data.startDate && data.startDate.trim() !== '' ? new Date(data.startDate) : null,
-                endDate: data.endDate && data.endDate.trim() !== '' ? new Date(data.endDate) : null,
-            }
+            data: createData,
         });
+
         return create;
     };
 
@@ -83,17 +101,33 @@ export class MarketingService {
 
             imageUrl = upload.secure_url;
         }
+        const updateData: any = {
+            image: imageUrl,
+        };
+
+        if (data.title !== undefined && data.title.trim() !== '') {
+            updateData.title = data.title;
+        }
+
+        if (data.description !== undefined && data.description.trim() !== '') {
+            updateData.description = data.description;
+        }
+
+        if (data.link !== undefined && data.link.trim() !== '') {
+            updateData.link = data.link;
+        }
+
+        if (data.startDate !== undefined && data.startDate.trim() !== '') {
+            updateData.startDate = new Date(data.startDate);
+        }
+
+        if (data.endDate !== undefined && data.endDate.trim() !== '') {
+            updateData.endDate = new Date(data.endDate);
+        }
 
         const updated = await this.prisma.marketing.update({
             where: { id },
-            data: {
-                image: imageUrl,
-                title: data.title !== undefined ? (data.title && data.title.trim() !== '' ? data.title : null) : undefined,
-                description: data.description !== undefined ? (data.description && data.description.trim() !== '' ? data.description : null) : undefined,
-                link: data.link !== undefined ? (data.link && data.link.trim() !== '' ? data.link : null) : undefined,
-                startDate: data.startDate !== undefined ? (data.startDate && data.startDate.trim() !== '' ? new Date(data.startDate) : null) : undefined,
-                endDate: data.endDate !== undefined ? (data.endDate && data.endDate.trim() !== '' ? new Date(data.endDate) : null) : undefined,
-            }
+            data: updateData,
         });
 
         return updated;
