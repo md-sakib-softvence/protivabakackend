@@ -23,6 +23,10 @@ export class MarketingService {
             if (!findSubAdmin.adminPermissions?.isManageWithdrawal) throw new NotFoundException("You are not permited accesss this action");
         }
 
+        if (!image) {
+            throw new BadRequestException("Image is required");
+        }
+
         const upload: any = await this.CloudinaryUploadService.uploadImageFromBuffer(image.buffer, "marketing", `marketing-${Math.random()}-${Date.now()}`)
 
         if (!upload) throw new BadRequestException("Image upload faild")
@@ -30,7 +34,11 @@ export class MarketingService {
         const create = await this.prisma.marketing.create({
             data: {
                 image: upload.secure_url,
-                ...data
+                title: data.title && data.title.trim() !== '' ? data.title : null,
+                description: data.description && data.description.trim() !== '' ? data.description : null,
+                link: data.link && data.link.trim() !== '' ? data.link : null,
+                startDate: data.startDate && data.startDate.trim() !== '' ? new Date(data.startDate) : null,
+                endDate: data.endDate && data.endDate.trim() !== '' ? new Date(data.endDate) : null,
             }
         });
         return create;
@@ -79,10 +87,12 @@ export class MarketingService {
         const updated = await this.prisma.marketing.update({
             where: { id },
             data: {
-                ...data,
                 image: imageUrl,
-                startDate: data.startDate ? new Date(data.startDate) : existing.startDate,
-                endDate: data.endDate ? new Date(data.endDate) : existing.endDate
+                title: data.title !== undefined ? (data.title && data.title.trim() !== '' ? data.title : null) : undefined,
+                description: data.description !== undefined ? (data.description && data.description.trim() !== '' ? data.description : null) : undefined,
+                link: data.link !== undefined ? (data.link && data.link.trim() !== '' ? data.link : null) : undefined,
+                startDate: data.startDate !== undefined ? (data.startDate && data.startDate.trim() !== '' ? new Date(data.startDate) : null) : undefined,
+                endDate: data.endDate !== undefined ? (data.endDate && data.endDate.trim() !== '' ? new Date(data.endDate) : null) : undefined,
             }
         });
 
