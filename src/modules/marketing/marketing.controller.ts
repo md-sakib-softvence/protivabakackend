@@ -26,6 +26,7 @@ export class MarketingController {
   @ApiBody({
     schema: {
       type: "object",
+      required: ["image"],
       properties: {
         title: { type: "string", example: "Carpentry & Woodwork" },
         description: { type: "string", example: "Boost your business..." },
