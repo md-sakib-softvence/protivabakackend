@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "marketing"
+ALTER COLUMN "title" DROP NOT NULL,
+ALTER COLUMN "startDate" DROP NOT NULL,
+ALTER COLUMN "endDate" DROP NOT NULL;

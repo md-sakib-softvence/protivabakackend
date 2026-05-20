@@ -3,12 +3,49 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateMarketingDto } from './dto/create.marketing.dto';
 import { CloudinaryUploadService } from 'src/cloudinary/cloudinary.upload.service';
 import { UpdateMarketingDto } from './dto/update.marketing.dto';
-import { BannerStatus } from '@prisma/client';
+import { BannerStatus, Prisma } from '@prisma/client';
+
+type MarketingOptionalData = Partial<Pick<Prisma.MarketingCreateInput, 'title' | 'description' | 'link' | 'startDate' | 'endDate'>>;
 
 @Injectable()
 export class MarketingService {
     constructor(private readonly prisma: PrismaService, private readonly CloudinaryUploadService: CloudinaryUploadService) { }
 
+    private getOptionalText(value?: string | null): string | undefined {
+        if (typeof value !== 'string') return undefined;
+
+        const trimmedValue = value.trim();
+        return trimmedValue.length > 0 ? trimmedValue : undefined;
+    }
+
+    private getOptionalDate(value: string | undefined, fieldName: string): Date | undefined {
+        const textValue = this.getOptionalText(value);
+        if (!textValue) return undefined;
+
+        const date = new Date(textValue);
+        if (Number.isNaN(date.getTime())) {
+            throw new BadRequestException(`${fieldName} must be a valid date`);
+        }
+
+        return date;
+    }
+
+    private buildMarketingData(data: CreateMarketingDto | UpdateMarketingDto): MarketingOptionalData {
+        const createData: MarketingOptionalData = {};
+        const title = this.getOptionalText(data.title);
+        const description = this.getOptionalText(data.description);
+        const link = this.getOptionalText(data.link);
+        const startDate = this.getOptionalDate(data.startDate, 'startDate');
+        const endDate = this.getOptionalDate(data.endDate, 'endDate');
+
+        if (title) createData.title = title;
+        if (description) createData.description = description;
+        if (link) createData.link = link;
+        if (startDate) createData.startDate = startDate;
+        if (endDate) createData.endDate = endDate;
+
+        return createData;
+    }
 
     async createBanner(image: Express.Multer.File, data: CreateMarketingDto, userId: string) {
 
@@ -31,29 +68,10 @@ export class MarketingService {
 
         if (!upload) throw new BadRequestException("Image upload faild")
 
-        const createData: any = {
+        const createData: Prisma.MarketingCreateInput = {
+            ...this.buildMarketingData(data),
             image: upload.secure_url,
         };
-
-        if (data.title && data.title.trim() !== '') {
-            createData.title = data.title;
-        }
-
-        if (data.description && data.description.trim() !== '') {
-            createData.description = data.description;
-        }
-
-        if (data.link && data.link.trim() !== '') {
-            createData.link = data.link;
-        }
-
-        if (data.startDate && data.startDate.trim() !== '') {
-            createData.startDate = new Date(data.startDate);
-        }
-
-        if (data.endDate && data.endDate.trim() !== '') {
-            createData.endDate = new Date(data.endDate);
-        }
 
         const create = await this.prisma.marketing.create({
             data: createData,
@@ -101,29 +119,10 @@ export class MarketingService {
 
             imageUrl = upload.secure_url;
         }
-        const updateData: any = {
+        const updateData: Prisma.MarketingUpdateInput = {
+            ...this.buildMarketingData(data),
             image: imageUrl,
         };
-
-        if (data.title !== undefined && data.title.trim() !== '') {
-            updateData.title = data.title;
-        }
-
-        if (data.description !== undefined && data.description.trim() !== '') {
-            updateData.description = data.description;
-        }
-
-        if (data.link !== undefined && data.link.trim() !== '') {
-            updateData.link = data.link;
-        }
-
-        if (data.startDate !== undefined && data.startDate.trim() !== '') {
-            updateData.startDate = new Date(data.startDate);
-        }
-
-        if (data.endDate !== undefined && data.endDate.trim() !== '') {
-            updateData.endDate = new Date(data.endDate);
-        }
 
         const updated = await this.prisma.marketing.update({
             where: { id },

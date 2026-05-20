@@ -1,31 +1,44 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import { Transform } from "class-transformer";
+import { IsDateString, IsOptional, IsString } from "class-validator";
+
+const optionalTrimmedString = ({ value }: { value: unknown }) => {
+    if (typeof value !== 'string') return value;
+
+    const trimmedValue = value.trim();
+    return trimmedValue.length > 0 ? trimmedValue : undefined;
+};
 
 export class CreateMarketingDto {
-    @ApiProperty({ description: 'Carpentry & Woodwork', example: "Carpentry & Woodwork" })
-    @IsString()
+    @ApiPropertyOptional({ description: 'Carpentry & Woodwork', example: "Carpentry & Woodwork" })
+    @Transform(optionalTrimmedString)
     @IsOptional()
+    @IsString()
     title?: string;
 
-    @ApiProperty({ description: "Boost your business with our powerful solutions designed to increase growth, improve customer engagement, and deliver outstanding results. Join us today and take your brand to the next level.", example: "Boost your business with our powerful solutions designed to increase growth, improve customer engagement, and deliver outstanding results. Join us today and take your brand to the next level." })
-    @IsString()
+    @ApiPropertyOptional({ description: "Boost your business with our powerful solutions designed to increase growth, improve customer engagement, and deliver outstanding results. Join us today and take your brand to the next level.", example: "Boost your business with our powerful solutions designed to increase growth, improve customer engagement, and deliver outstanding results. Join us today and take your brand to the next level." })
+    @Transform(optionalTrimmedString)
     @IsOptional()
+    @IsString()
     description?: string;
 
-    @ApiProperty({ description: "https://link.pro.fake.com", example: "https://link.pro.fake.com" })
-    @IsString()
+    @ApiPropertyOptional({ description: "https://link.pro.fake.com", example: "https://link.pro.fake.com" })
+    @Transform(optionalTrimmedString)
     @IsOptional()
+    @IsString()
     link?: string;
 
-    @ApiProperty({ description: "Start date in ISO format (YYYY-MM-DD)", example: "2026-03-25T10:30:00Z" })
-    @IsString()
+    @ApiPropertyOptional({ description: "Start date in ISO format (YYYY-MM-DD)", example: "2026-03-25T10:30:00Z" })
+    @Transform(optionalTrimmedString)
     @IsOptional()
+    @IsDateString()
     startDate?: string;
 
 
-    @ApiProperty({ description: "End date in ISO format (YYYY-MM-DD)", example: "2026-03-25T10:30:00Z" })
-    @IsString()
+    @ApiPropertyOptional({ description: "End date in ISO format (YYYY-MM-DD)", example: "2026-03-25T10:30:00Z" })
+    @Transform(optionalTrimmedString)
     @IsOptional()
+    @IsDateString()
     endDate?: string
 }
 
@@ -34,13 +47,13 @@ export class CreateMarketingDto {
 
 // model Marketing {
 //   id           String       @id @default(cuid())
-//   title        String
+//   title        String?
 //   description  String?
 //   image        String
 //   link         String?
 //   targetRole   String?
-//   startDate    DateTime
-//   endDate      DateTime
+//   startDate    DateTime?
+//   endDate      DateTime?
 //   status       BannerStatus @default(DRAFT)
 //   impressions  Int          @default(0)
 //   clicks       Int          @default(0)
