@@ -19,7 +19,7 @@ export class JobService {
     private readonly cloudinary: CloudinaryUploadService,
     @Inject('FIREBASE_MESSAGING')
     private readonly messaging: admin.messaging.Messaging,
-  ) {}
+  ) { }
 
   async createJob(
     data: CreateJobDto,
@@ -47,16 +47,6 @@ export class JobService {
     if (isExistService) {
       throw new BadRequestException(ERROR_MESSAGES.DUPLICATE_ENTRY);
     }
-
-    // let imageUrls: string[] = [];
-
-    // if (images?.length) {
-    //     const uploadResults = await Promise.all(
-    //         images.map((file) => this.cloudinary.uploadImageFromBuffer(file.buffer, 'jobs', `${Date.now()}-${file.originalname}`))
-    //     );
-
-    //     imageUrls = uploadResults.map((res: any) => res.secure_url);
-    // }
 
     const upload: any = await this.cloudinary.uploadImageFromBuffer(
       images.buffer,

@@ -49,37 +49,6 @@ export class AuthService {
     private readonly cloudinary: CloudinaryUploadService,
   ) { }
 
-  // async sentNotification(userId: string, title: string, body: string) {
-  //     const user = await this.prisma.user.findUnique(
-  //         {
-  //             where: {
-  //                 id: userId
-  //             }
-  //         }
-  //     )
-
-  //     if (!user) throw new NotFoundException("User not found");
-
-  //     if (user.role === "CLIENT" || user.role === "PROVIDER") {
-  //         if (user.isNotificationEnabled) {
-  //             if (user.fcmToken) {
-  //                 await this.messaging.send({
-  //                     token: user.fcmToken,
-  //                     notification: {
-  //                         title: title,
-  //                         body: body,
-  //                     },
-  //                     data: {
-  //                         type: "PUSH_NOTIFICATION",
-  //                         userId: user.id,
-  //                     },
-  //                 });
-  //             }
-  //         }
-  //     }
-
-  // }
-
   async sentNotification(userId: string, title: string, body: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -445,6 +414,14 @@ export class AuthService {
       throw new UnauthorizedException(
         'Account is locked. Please try again later.',
       );
+    }
+
+    if (user.role === "PROVIDER") {
+      if (user.verificationStatus === "PENDING" || user.verificationStatus === "UNVERIFIED" || user.verificationStatus === "REJECTED") {
+        throw new BadRequestException(
+          "Your provider account is not verified yet. Please complete the verification process or contact support for further assistance."
+        );
+      }
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.password!);
