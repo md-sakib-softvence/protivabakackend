@@ -62,7 +62,6 @@ export class MarketingService {
         return create;
     };
 
-
     async updateBanner(id: string, image: Express.Multer.File, data: UpdateMarketingDto, userId: string) {
 
 

@@ -1,45 +1,49 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
     IsString,
+    IsNotEmpty,
     IsOptional,
     IsEnum,
     IsNumber,
-    IsArray
+    IsArray,
+    Min,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { PriceType, JobStatus } from '@prisma/client';
 
 export class CreateJobDto {
     @ApiProperty()
-    @IsString()
+    @IsNotEmpty({ message: 'categoryId is required' })
+    @IsString({ message: 'categoryId must be a string' })
     categoryId: string;
 
-    @ApiPropertyOptional()
-    @IsOptional()
-    @IsString()
-    subCategoryId?: string;
+    @ApiProperty()
+    @IsNotEmpty({ message: 'subCategoryId is required' })
+    @IsString({ message: 'subCategoryId must be a string' })
+    subCategoryId: string;
 
     @ApiProperty()
-    @IsString()
+    @IsNotEmpty({ message: 'title is required' })
+    @IsString({ message: 'title must be a string' })
     title: string;
 
 
     @ApiProperty()
-    @IsString()
+    @IsNotEmpty({ message: 'description is required' })
+    @IsString({ message: 'description must be a string' })
     description: string;
 
     @ApiProperty({ example: 100.0 })
+    @IsNotEmpty({ message: 'basePrice is required' })
     @Type(() => Number)
-    @IsNumber()
+    @IsNumber({}, { message: 'basePrice must be a number' })
+    @Min(0, { message: 'basePrice must be a positive number' })
     basePrice: number;
 
     @ApiProperty({ enum: PriceType })
-    @IsEnum(PriceType)
+    @IsNotEmpty({ message: 'priceType is required' })
+    @IsEnum(PriceType, { message: `priceType must be one of: ${Object.values(PriceType).join(', ')}` })
     priceType: PriceType;
-
-    //   @ApiPropertyOptional({ type: Object })
-    //   @IsOptional()
-    //   features?: any;
 
     @ApiPropertyOptional({ type: [String] })
     @IsOptional()
@@ -48,13 +52,13 @@ export class CreateJobDto {
     images?: string[];
 
 
-    @ApiPropertyOptional({
+    @ApiProperty({
         type: [String],
         example: ['Fast delivery', 'Source code included'],
     })
-    @IsOptional()
-    @IsArray()
-    @IsString({ each: true })
+    @IsNotEmpty({ message: 'includeService is required' })
+    @IsArray({ message: 'includeService must be an array' })
+    @IsString({ each: true, message: 'each service must be a string' })
     @Transform(({ value }) =>
         Array.isArray(value)
             ? value
@@ -62,16 +66,10 @@ export class CreateJobDto {
                 ? value.split(',').map(v => v.trim())
                 : [],
     )
-    includeService?: string[];
+    includeService: string[];
 
-    //   @ApiPropertyOptional({ type: [String] })
-    //   @IsOptional()
-    //   @IsArray()
-    //   @IsString({ each: true })
-    //   videos?: string[];
-
-    @ApiPropertyOptional({ enum: JobStatus, default: JobStatus.DRAFT })
-    @IsOptional()
-    @IsEnum(JobStatus)
-    status?: JobStatus;
+    @ApiProperty({ enum: JobStatus, default: JobStatus.DRAFT })
+    @IsNotEmpty({ message: 'status is required' })
+    @IsEnum(JobStatus, { message: `status must be one of: ${Object.values(JobStatus).join(', ')}` })
+    status: JobStatus;
 }
