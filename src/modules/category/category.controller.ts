@@ -200,7 +200,7 @@ export class CategoryController {
     };
   }
 
-  @Delete("deete/:categoryId")
+  @Delete("delete/:categoryId")
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, SuperAdminGuard)
   @ApiOperation({
