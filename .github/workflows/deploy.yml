@@ -51,11 +51,11 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            cd ~/protiva-be
+            cd ~/server
             echo "🔄 Pulling latest image..."
-            docker compose pull
+            docker compose --profile prod pull
             echo "🚀 Restarting containers..."
-            docker compose up -d --remove-orphans
+            docker compose --profile prod up -d --remove-orphans
             echo "🧹 Cleaning up dangling images..."
             docker system prune -af --volumes || true
             echo "✅ Deployment complete!"
