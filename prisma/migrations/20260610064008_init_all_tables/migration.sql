@@ -352,7 +352,11 @@ CREATE TABLE "payments" (
     "amount" DECIMAL(10,2) NOT NULL,
     "currency" TEXT NOT NULL DEFAULT 'BDT',
     "gatewayTxnId" TEXT,
+    "gatewayData" JSONB,
     "gatewayResponse" JSONB,
+    "valId" TEXT,
+    "bankTranId" TEXT,
+    "cardType" TEXT,
     "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
     "failureReason" TEXT,
     "metadata" JSONB,
@@ -431,6 +435,7 @@ CREATE TABLE "reviews" (
     "jobId" TEXT NOT NULL,
     "rating" SMALLINT NOT NULL,
     "comment" TEXT,
+    "image" TEXT DEFAULT '',
     "images" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "helpfulCount" INTEGER NOT NULL DEFAULT 0,
     "reportCount" INTEGER NOT NULL DEFAULT 0,
@@ -464,13 +469,13 @@ CREATE TABLE "messages" (
 -- CreateTable
 CREATE TABLE "marketing" (
     "id" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
+    "title" TEXT,
     "description" TEXT,
     "image" TEXT NOT NULL,
     "link" TEXT,
     "targetRole" TEXT,
-    "startDate" TIMESTAMP(3) NOT NULL,
-    "endDate" TIMESTAMP(3) NOT NULL,
+    "startDate" TIMESTAMP(3),
+    "endDate" TIMESTAMP(3),
     "status" "BannerStatus" NOT NULL DEFAULT 'DRAFT',
     "impressions" INTEGER NOT NULL DEFAULT 0,
     "clicks" INTEGER NOT NULL DEFAULT 0,
@@ -567,6 +572,17 @@ CREATE TABLE "TermsCondition" (
 );
 
 -- CreateTable
+CREATE TABLE "SystemSetting" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SystemSetting_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "call_sessions" (
     "id" TEXT NOT NULL,
     "bookingId" TEXT NOT NULL,
@@ -584,6 +600,39 @@ CREATE TABLE "call_sessions" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "call_sessions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "coupons" (
+    "id" TEXT NOT NULL,
+    "couponCode" TEXT NOT NULL,
+    "discountPercentage" INTEGER NOT NULL,
+    "totalUselimit" INTEGER NOT NULL DEFAULT 0,
+    "currentUselimit" INTEGER NOT NULL DEFAULT 0,
+    "expireAt" TIMESTAMP(3) NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "coupons_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AppVersionConfig" (
+    "id" TEXT NOT NULL,
+    "appConfigKey" TEXT NOT NULL,
+    "androidLatestVersion" TEXT NOT NULL,
+    "androidMinRequiredVersion" TEXT NOT NULL,
+    "androidForceUpdate" BOOLEAN NOT NULL,
+    "iosLatestVersion" TEXT NOT NULL,
+    "iosMinRequiredVersion" TEXT NOT NULL,
+    "iosForceUpdate" BOOLEAN NOT NULL,
+    "androidStoreUrl" TEXT NOT NULL,
+    "iosStoreUrl" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AppVersionConfig_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -767,6 +816,9 @@ CREATE INDEX "location_updates_bookingId_userId_timestamp_idx" ON "location_upda
 CREATE INDEX "location_updates_bookingId_timestamp_idx" ON "location_updates"("bookingId", "timestamp");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "SystemSetting_key_key" ON "SystemSetting"("key");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "call_sessions_roomId_key" ON "call_sessions"("roomId");
 
 -- CreateIndex
@@ -774,6 +826,12 @@ CREATE INDEX "call_sessions_bookingId_idx" ON "call_sessions"("bookingId");
 
 -- CreateIndex
 CREATE INDEX "call_sessions_status_idx" ON "call_sessions"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "coupons_couponCode_key" ON "coupons"("couponCode");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AppVersionConfig_appConfigKey_key" ON "AppVersionConfig"("appConfigKey");
 
 -- AddForeignKey
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
