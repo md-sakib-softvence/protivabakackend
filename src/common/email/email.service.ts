@@ -47,7 +47,7 @@ export class EmailService {
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #4F46E5;">Welcome to kajBD, ${firstName}!</h2>
+        <h2 style="color: #4F46E5;">Welcome to kaajBD, ${firstName}!</h2>
         <p>Your one-time verification code is:</p>
         <h1 style="color: #4F46E5; font-size: 42px; letter-spacing: 10px; text-align: center; padding: 20px; background: #f8fafc; border-radius: 8px;">
           ${otp}
