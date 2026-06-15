@@ -131,7 +131,7 @@ export class PaymentService {
             // SSLCommerz SDK specific config
             storeId: process.env.SSLCOMMERZ_STORE_ID,
             storePassword: process.env.SSLCOMMERZ_STORE_PASSWORD, // Note: Use secure obfuscation in Flutter
-            isSandbox: true,
+            isSandbox: false,
 
             // Customer info for the SDK UI
             customerName: booking.client?.firstName || 'Customer',
