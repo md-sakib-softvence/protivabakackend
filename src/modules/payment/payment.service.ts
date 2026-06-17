@@ -131,7 +131,7 @@ export class PaymentService {
             // SSLCommerz SDK specific config
             storeId: process.env.SSLCOMMERZ_STORE_ID,
             storePassword: process.env.SSLCOMMERZ_STORE_PASSWORD, // Note: Use secure obfuscation in Flutter
-            isSandbox: false,
+            isSandbox: process.env.SSLCOMMERZ_IS_LIVE !== 'true',
 
             // Customer info for the SDK UI
             customerName: booking.client?.firstName || 'Customer',
@@ -152,7 +152,10 @@ export class PaymentService {
 
         // SSL Verify API
         // const url = `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCZ_STORE_ID}&store_passwd=${process.env.SSLCZ_STORE_PASSWORD}&format=json`;
-        const url = `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCOMMERZ_STORE_ID}&store_passwd=${process.env.SSLCOMMERZ_STORE_PASSWORD}&format=json`;
+        const isLive = process.env.SSLCOMMERZ_IS_LIVE === 'true';
+        const url = isLive
+            ? `https://securepay.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCOMMERZ_STORE_ID}&store_passwd=${process.env.SSLCOMMERZ_STORE_PASSWORD}&format=json`
+            : `https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php?val_id=${val_id}&store_id=${process.env.SSLCOMMERZ_STORE_ID}&store_passwd=${process.env.SSLCOMMERZ_STORE_PASSWORD}&format=json`;
         const { data } = await axios.get(url);
 
         console.log('SSL VERIFY RESPONSE =>', data);
