@@ -19,7 +19,6 @@ export class AppVersionConfigController {
   }
 
   @Patch('/update')
-  @Put('/update')
   @ApiOperation({ summary: 'Update App Version Config (creates if not exists)' })
   async updateAppVersionConfig(
     @Body() updateDto: UpdateAppVersionConfigDto,
