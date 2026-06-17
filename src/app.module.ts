@@ -29,6 +29,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { PolicyModule } from './modules/policy/policy.module';
 import { CuponModule } from './modules/cupon/cupon.module';
 import { SystemSettingModule } from './modules/system-setting/system-setting.module';
+import { AppVersionConfigModule } from './modules/app-version-config/app-version-config.module';
 
 @Module({
   imports: [
@@ -77,7 +78,8 @@ import { SystemSettingModule } from './modules/system-setting/system-setting.mod
     NotificationModule,
     PolicyModule,
     CuponModule,
-    SystemSettingModule
+    SystemSettingModule,
+    AppVersionConfigModule
   ],
 
   controllers: [AppController],
