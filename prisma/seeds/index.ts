@@ -12,8 +12,8 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('🌱 Seeding database...');
 
-  const email = process.env.SEED_ADMIN_EMAIL || 'admin@kaajbd.com.bd';
-  const password = process.env.SEED_ADMIN_PASSWORD || 'AdminPassword123!';
+  const email = process.env.SEED_ADMIN_EMAIL || 'islammohaimenul64@gmail.com';
+  const password = process.env.SEED_ADMIN_PASSWORD || 'Adminislammohaimenul64';
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const admin = await prisma.user.upsert({
