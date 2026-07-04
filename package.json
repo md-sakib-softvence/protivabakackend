@@ -6,10 +6,10 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
-    "dev": "npx prisma generate --config prisma/prisma.config.ts && npx prisma db push --config prisma/prisma.config.ts && nest start --watch",
+    "build": "node api.js && nest build",
+    "dev": "node api.js && npx prisma generate --config prisma/prisma.config.ts && npx prisma db push --config prisma/prisma.config.ts && nest start --watch",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "start": "node api.js && nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main",
