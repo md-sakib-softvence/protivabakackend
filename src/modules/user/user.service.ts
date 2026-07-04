@@ -390,4 +390,35 @@ export class UserService {
         return result;
     }
 
+
+    async searchyProvider(search: string) {
+        const providers = await this.prisma.user.findMany({
+            where: {
+                role: "PROVIDER",
+                status: {
+                    not: "DELETED"
+                },
+                OR: [
+                    { firstName: { contains: search, mode: "insensitive" } },
+                    { lastName: { contains: search, mode: "insensitive" } },
+                    { email: { contains: search, mode: "insensitive" } },
+                    { phone: { contains: search, mode: "insensitive" } }
+                ]
+            },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+                avatar: true
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+
+        return providers;
+    }
+
 }
