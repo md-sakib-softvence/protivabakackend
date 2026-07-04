@@ -109,6 +109,23 @@ export class UserController {
 
   }
 
+ @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get("search-provider")
+  @ApiOperation({
+    summary: 'Search Provider with search filter (Only Can Admin)',
+  })
+  async searchProvider(
+    @Query('search') search: string,
+  ) {
+    const result = await this.userService.searchyProvider(search);
+
+    return {
+      success: true,
+      message: "All Provider Retrived Successfully",
+      data: result
+    }
+  }
 
 
   @Get("get-all-user")

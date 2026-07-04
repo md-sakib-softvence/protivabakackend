@@ -11,6 +11,7 @@ import { CloudinaryUploadService } from 'src/cloudinary/cloudinary.upload.servic
 import slugify from 'slugify';
 import { UpdateJobDto, UpdateJobDtoPro } from './dto/update.job.dto';
 import * as admin from 'firebase-admin';
+import { VerificationStatus } from '@prisma/client';
 
 @Injectable()
 export class JobService {
@@ -77,14 +78,14 @@ export class JobService {
     return result;
   }
 
-  async getAllJobForUserHomePage(
-    isPopuler: boolean,
-    page: number,
-    limit: number,
-  ) {
+  async getAllJobForUserHomePage(isPopuler: boolean, page: number, limit: number) {
     const skip = (page - 1) * limit;
 
-    const whereCondition: any = {};
+   const whereCondition: any = {
+    user: {
+      verificationStatus: VerificationStatus.VERIFIED,
+    },
+  };
 
     if (isPopuler) {
       whereCondition.isPopuler = true;
@@ -106,7 +107,6 @@ export class JobService {
         },
       },
     });
-    //cmntym2og00031wbgt2z0knsz cmntylmxe00021wbgftf9afuf cmntylmxe00021wbgftf9afuf cmntym2og00031wbgt2z0knsz
 
     const total = await this.prisma.job.count({
       where: whereCondition,
